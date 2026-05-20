@@ -2,15 +2,9 @@
 
 对话**没有删除**。Cursor 按工作区 ID 分桶：当前窗口是 `Users-a58-Desktop-wordcup2026`（几乎只有新对话），历史在 `1778552029723` 等旧桶，所以左侧 History 常显示为空。
 
-## 在本仓库打开
+## 对话全文在哪
 
-| 文件 | 说明 |
-|------|------|
-| [`main-session-6af8f6f4.jsonl`](./main-session-6af8f6f4.jsonl) | 主会话 · OKcopa MVP 全流程（约 147 条用户消息） |
-| [`early-github-399fd285.jsonl`](./early-github-399fd285.jsonl) | 早期 · 从 GitHub 拉世界杯专题站（约 20 条用户消息） |
-| [`find-session-bfb1ba90.jsonl`](./find-session-bfb1ba90.jsonl) | 查找世界杯会话（约 1 条用户消息） |
-
-在 Cursor 中 **Cmd+P** 输入 `main-session-6af8f6f4` 即可打开主会话全文（可 Cmd+F 搜索）。
+GitHub **不包含** `.jsonl` 全文（避免符号链接导致 Cloudflare 部署失败）。请在本机用下面「原始路径」用 Cursor / 文本编辑器打开。
 
 ## 原始路径（勿删 Cursor 目录）
 

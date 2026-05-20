@@ -1,5 +1,28 @@
 # 发布 OKcopa 到服务器（接 INDEX 第 147 条）
 
+## Cloudflare Pages（GitHub 自动部署）
+
+在 Cloudflare 控制台 → Pages → 你的项目 → **Settings → Builds & deployments** 填：
+
+| 项 | 值 |
+|----|-----|
+| Framework preset | **Vite**（或 None） |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Node.js version | **20**（Environment variables → `NODE_VERSION` = `20`） |
+
+**不要**把输出目录设成 `/` 或仓库根目录——根目录里曾有过指向本机 `.cursor` 的符号链接，会报：
+
+`build output directory contains links to files that can't be accessed`
+
+改完保存后点 **Retry deployment**。
+
+构建成功后站点只有 `dist` 内容；`base: './'` 已在 `vite.config.ts` 里配置。`public/_redirects` 用于 SPA 路由回退。
+
+> 若仍因 **文件过多 / 体积过大** 失败：把 `public/media/car-rentals/*.jpg` 迁到 R2/OSS，不要打进 Git（见下文「图片」）。
+
+---
+
 ## 免 Nginx：html.zip + Node 静态服务（CentOS 7 推荐）
 
 本机打包（`base: './'` 相对路径 + `server.js`）：

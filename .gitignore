@@ -7,3 +7,5 @@ dist
 .okcopa-preview.pid
 .DS_Store
 .vscode/sftp.json
+html.zip
+docs/wordcup-chat-archive/*.jsonl
