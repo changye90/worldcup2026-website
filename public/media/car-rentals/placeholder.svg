@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450" role="img" aria-label="Photo coming soon">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a2e1f"/>
+      <stop offset="100%" style="stop-color:#0f1720"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#g)"/>
+  <rect x="40" y="40" width="720" height="370" rx="16" fill="none" stroke="#3d5244" stroke-width="2" stroke-dasharray="12 10"/>
+  <text x="400" y="200" text-anchor="middle" fill="#7a8f7a" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Photo</text>
+  <text x="400" y="240" text-anchor="middle" fill="#5c6b5c" font-family="system-ui,sans-serif" font-size="15">Coming soon</text>
+</svg>

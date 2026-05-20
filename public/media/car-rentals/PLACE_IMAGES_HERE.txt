@@ -1,0 +1,3 @@
+Car covers: save as {id}.jpg in this folder → /media/car-rentals/1001.jpg
+Until then, the site uses placeholder.svg for every row (see import script CAR_IMAGE_FALLBACK).
+Hotels/vacation rentals can keep using https:// image URLs in their data.

@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-pitch-900 text-white;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes pulse-cta {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.5); }
+  50%       { box-shadow: 0 0 0 6px rgba(250, 204, 21, 0); }
+}
+
+.animate-pulse-cta {
+  animation: pulse-cta 1.6s ease-in-out infinite;
+}
+
+@keyframes buy-ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-buy-ticker {
+  animation: buy-ticker 45s linear infinite;
+}
+
+.animate-buy-ticker:hover {
+  animation-play-state: paused;
+}
+
+/* Ticket post modal: body uses text-white — force non-white typed input text */
+.ticket-post-form--sell input:not([type='checkbox']),
+.ticket-post-form--sell textarea {
+  -webkit-text-fill-color: rgb(252 211 77) !important;
+  color: rgb(252 211 77) !important;
+  caret-color: rgb(250 204 21);
+}
+
+.ticket-post-form--sell input::placeholder,
+.ticket-post-form--sell textarea::placeholder {
+  -webkit-text-fill-color: rgb(107 114 128) !important;
+  color: rgb(107 114 128) !important;
+  opacity: 1;
+}
+
+.ticket-post-form--buy input:not([type='checkbox']),
+.ticket-post-form--buy textarea {
+  -webkit-text-fill-color: rgb(125 211 252) !important;
+  color: rgb(125 211 252) !important;
+  caret-color: rgb(56 189 248);
+}
+
+.ticket-post-form--buy input::placeholder,
+.ticket-post-form--buy textarea::placeholder {
+  -webkit-text-fill-color: rgb(107 114 128) !important;
+  color: rgb(107 114 128) !important;
+  opacity: 1;
+}
+
+.ticket-post-form--sell input:-webkit-autofill,
+.ticket-post-form--sell textarea:-webkit-autofill {
+  -webkit-text-fill-color: rgb(252 211 77) !important;
+  box-shadow: 0 0 0 1000px rgb(6 12 22) inset !important;
+}
+
+.ticket-post-form--buy input:-webkit-autofill,
+.ticket-post-form--buy textarea:-webkit-autofill {
+  -webkit-text-fill-color: rgb(125 211 252) !important;
+  box-shadow: 0 0 0 1000px rgb(6 12 22) inset !important;
+}

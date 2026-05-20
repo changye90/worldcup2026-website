@@ -1,0 +1,17 @@
+---
+description: After OKcopa/wordcup2026 UI changes, give user a working preview URL (npm run latest)
+globs: "**/*.{tsx,ts,css,html}", "vite.config.ts", "package.json", "scripts/**/*"
+alwaysApply: true
+---
+
+# OKcopa — 给用户「能打开的最新地址」
+
+用户不想自己找端口。每次你改完 **`wordcup2026`** 里会影响界面的代码后：
+
+1. 在仓库根目录执行：**`npm run latest`**（会 `vite build`，然后在 **5280–5300** 里找第一个空闲端口起 `vite preview`，并 **`--open` 浏览器**）。
+2. 终端里会打印一个大框，里面的 **`http://127.0.0.1:PORT/`** 就是当前这次构建的地址；同一地址也会写入项目根目录的 **`.okcopa-url`**（一行纯文本，方便复制）。
+3. **在回复里必须把终端里打印的那条完整 URL 原样写给用户**（端口可能是 5280、5281…，不要猜也不要写死 5280）。
+
+若用户只想长期开发热更新，仍可说明：**`npm run dev`**（默认仍尝试 5280 + `scripts/free-dev-port.mjs`）。
+
+页脚 **`build · <时间>`** 每次 `vite build` 会变，可用来确认是不是新包。
