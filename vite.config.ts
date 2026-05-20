@@ -16,10 +16,13 @@ function noCacheEverything(
   next();
 }
 
+// Cloudflare Pages sets CF_PAGES=1 during build; use absolute paths there.
+// Aliyun / subfolder deploy: set VITE_BASE=./ (default) in the build env.
+const assetBase = process.env.VITE_BASE ?? (process.env.CF_PAGES === '1' ? '/' : './');
+
 // https://vitejs.dev/config/
 export default defineConfig({
-  /** Relative asset URLs — safe when deployed to any folder on the server. */
-  base: './',
+  base: assetBase,
   define: {
     __OKCOPA_BUILD__: JSON.stringify(okcopaBuildStamp),
   },

@@ -17,7 +17,9 @@
 
 改完保存后点 **Retry deployment**。
 
-构建成功后站点只有 `dist` 内容；`base: './'` 已在 `vite.config.ts` 里配置。`public/_redirects` 用于 SPA 路由回退。
+构建成功后站点只有 `dist` 内容。在 Cloudflare 上构建时会自动 `base: '/'`（`CF_PAGES=1`）；阿里云子目录包仍用 `VITE_BASE=./`。
+
+若出现白屏 + 控制台 `application/octet-stream`：不要用 `/* /index.html` 通配重定向（会把 `.js` 当 HTML 返回）；本仓库已用 `public/_headers` 固定 JS/CSS 的 Content-Type。
 
 > 若仍因 **文件过多 / 体积过大** 失败：把 `public/media/car-rentals/*.jpg` 迁到 R2/OSS，不要打进 Git（见下文「图片」）。
 
