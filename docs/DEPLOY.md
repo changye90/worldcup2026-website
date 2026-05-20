@@ -6,10 +6,25 @@
 
 | 项 | 值 |
 |----|-----|
-| Framework preset | **Vite**（或 None） |
-| Build command | `npm run build` |
-| Build output directory | `dist` |
+| Framework preset | **Vite**（选 Vite 会自动填下面两行；若选 None 必须手填） |
+| Build command | **`npm run build`** ← 缺这项就会报 `dist not found` |
+| Build output directory | **`dist`**（可与 wrangler.toml 的 `pages_build_output_dir` 一致） |
 | Node.js version | **20**（Environment variables → `NODE_VERSION` = `20`） |
+
+### 票务墙 Supabase（生产环境必配）
+
+Pages → 项目 → **Settings → Environment variables**（Production）添加：
+
+| 变量名 | 值 |
+|--------|-----|
+| `VITE_SUPABASE_URL` | `https://qytwpbckusacimnzmemo.supabase.co`（你的 Project URL） |
+| `VITE_SUPABASE_ANON_KEY` | Supabase **Publishable key**（`sb_publishable_...`） |
+
+保存后 **Retry deployment** 或再 push 一次，否则线上发帖仍只存浏览器、别人看不到。
+
+Supabase 表 `ticket_wall_posts` 需已建表，且 RLS 允许 `anon` 的 `select` / `insert` / `update`（见下文或此前 SQL）。
+
+日志里若出现 **`No build command specified. Skipping build step.`** 紧接着 **`Output directory "dist" not found`**：就是没配 Build command（`dist` 在 `.gitignore` 里，必须构建才会生成）。
 
 **不要**把输出目录设成 `/` 或仓库根目录——根目录里曾有过指向本机 `.cursor` 的符号链接，会报：
 

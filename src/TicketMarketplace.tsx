@@ -4,6 +4,8 @@ import type { Lang, Translations } from './i18n';
 import {
   seedTicketWallPosts,
   loadUserTicketPosts,
+  loadSharedTicketPosts,
+  persistSharedTicketPost,
   persistUserTicketPost,
   type TicketWallPost,
   type TicketWallKind,
@@ -281,9 +283,37 @@ function TicketBuyPostCard({ post, tr }: { post: TicketWallPost; tr: Translation
 export function useTicketWall(_lang: Lang) {
   const [userPosts, setUserPosts] = useState<TicketWallPost[]>(() => loadUserTicketPosts());
 
+  useEffect(() => {
+    let active = true;
+    const localPosts = loadUserTicketPosts();
+    const localIds = new Set(localPosts.map(p => p.id));
+    void loadSharedTicketPosts(localIds).then(shared => {
+      if (!active || !shared) return;
+      setUserPosts(() => {
+        const merged = new Map<string, TicketWallPost>();
+        [...localPosts, ...shared].forEach(p => {
+          merged.set(p.id, localIds.has(p.id) ? { ...p, isUser: true } : p);
+        });
+        return Array.from(merged.values())
+          .sort((a, b) => b.createdAt - a.createdAt)
+          .slice(0, 200);
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handlePost = useCallback((post: TicketWallPost) => {
     persistUserTicketPost(post);
-    setUserPosts(prev => [post, ...prev]);
+    setUserPosts(prev => {
+      const merged = new Map<string, TicketWallPost>([[post.id, { ...post, isUser: true }]]);
+      prev.forEach(p => merged.set(p.id, p));
+      return Array.from(merged.values())
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, 200);
+    });
+    void persistSharedTicketPost(post);
     return post;
   }, []);
 

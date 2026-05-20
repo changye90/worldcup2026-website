@@ -1,4 +1,5 @@
 import type { TicketBuyPayload, TicketSellPayload } from './ticketPostForm';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 export type TicketWallKind = 'buy' | 'sell';
 
@@ -17,6 +18,22 @@ export interface TicketWallPost {
 
 /** Bump when clearing the wall so browsers drop old localStorage posts. */
 const STORAGE_KEY = 'okcopa-ticket-wall-v2';
+const SUPABASE_TABLE = 'ticket_wall_posts';
+const SUPABASE_FETCH_LIMIT = 200;
+
+let supabaseClient: SupabaseClient | null | undefined;
+
+function getSupabaseClient(): SupabaseClient | null {
+  if (supabaseClient !== undefined) return supabaseClient;
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+  if (!url || !anonKey) {
+    supabaseClient = null;
+    return supabaseClient;
+  }
+  supabaseClient = createClient(url, anonKey);
+  return supabaseClient;
+}
 
 /** Demo/seed posts — empty until real listings are imported. */
 export const seedTicketWallPosts: TicketWallPost[] = [];
@@ -35,6 +52,72 @@ export function loadUserTicketPosts(): TicketWallPost[] {
 export function persistUserTicketPost(post: TicketWallPost): void {
   const existing = loadUserTicketPosts();
   localStorage.setItem(STORAGE_KEY, JSON.stringify([post, ...existing].slice(0, 40)));
+}
+
+interface TicketWallDbRow {
+  id: string;
+  kind: TicketWallKind;
+  flag: string;
+  username: string;
+  summary: string;
+  detail: string;
+  created_at_ms?: number | null;
+  created_at?: string | null;
+  payload?: TicketSellPayload | TicketBuyPayload | null;
+}
+
+function dbRowToPost(row: TicketWallDbRow, localIds: Set<string>): TicketWallPost {
+  const fromMs = typeof row.created_at_ms === 'number' ? row.created_at_ms : null;
+  const fromIso = row.created_at ? Date.parse(row.created_at) : NaN;
+  return {
+    id: row.id,
+    kind: row.kind,
+    flag: row.flag || '🏳️',
+    username: row.username || 'Fan',
+    summary: row.summary || '',
+    detail: row.detail || '',
+    createdAt: fromMs ?? (Number.isFinite(fromIso) ? fromIso : Date.now()),
+    isUser: localIds.has(row.id),
+    payload: row.payload ?? undefined,
+  };
+}
+
+export async function loadSharedTicketPosts(localIds: Set<string>): Promise<TicketWallPost[] | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from(SUPABASE_TABLE)
+      .select('id, kind, flag, username, summary, detail, created_at_ms, created_at, payload')
+      .order('created_at_ms', { ascending: false })
+      .limit(SUPABASE_FETCH_LIMIT);
+    if (error || !Array.isArray(data)) return null;
+    return data
+      .filter(row => row.kind === 'buy' || row.kind === 'sell')
+      .map(row => dbRowToPost(row as TicketWallDbRow, localIds));
+  } catch {
+    return null;
+  }
+}
+
+export async function persistSharedTicketPost(post: TicketWallPost): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+  try {
+    const { error } = await supabase.from(SUPABASE_TABLE).upsert({
+      id: post.id,
+      kind: post.kind,
+      flag: post.flag,
+      username: post.username,
+      summary: post.summary,
+      detail: post.detail,
+      created_at_ms: post.createdAt,
+      payload: post.payload ?? null,
+    });
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 export function clearUserTicketPosts(): void {

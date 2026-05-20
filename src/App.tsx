@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   MapPin, ChevronLeft, ChevronRight, Bed, Car, Building2,
-  Zap, Calendar, MessageCircle, Phone, Clock,
+  Zap, Calendar, Phone, Clock,
   Flame, ChevronDown, Check, Ticket,
   BarChart3, Tag, Search,
 } from 'lucide-react';
@@ -58,13 +58,6 @@ const formatDate = (iso: string) => {
     date: d.getDate(),
     month: d.toLocaleDateString('en-US', { month: 'short' }),
   };
-};
-
-const whatsappUrl = (phone: string, message: string) => {
-  const digits = phone.replace(/\D/g, '');
-  if (!digits) return '#';
-  // `wa.me` — same as before; digits-only avoids `+`/spaces breaking the URL.
-  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 };
 
 /** Discrete listing id for QA (sheet / export `id`). */
@@ -860,39 +853,6 @@ export default function App() {
   );
 }
 
-// ─── WhatsApp button ──────────────────────────────────────────────────────────
-
-function WhatsAppButton({ href, label, disabled }: { href: string; label: string; disabled?: boolean }) {
-  const layout =
-    'relative flex w-full items-center justify-center gap-2.5 rounded-xl py-3 text-sm font-bold overflow-hidden';
-  if (disabled) {
-    return (
-      <span
-        className={`${layout} cursor-not-allowed border border-gray-600/70 bg-pitch-900/85 text-gray-500 opacity-[0.72]`}
-        aria-disabled="true"
-      >
-        <MessageCircle className="h-4 w-4 shrink-0 opacity-45" />
-        <span>{label}</span>
-      </span>
-    );
-  }
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`${layout} group text-white transition-all duration-200 hover:brightness-110 active:scale-[0.98]`}
-      style={{ backgroundColor: '#00CF15' }}
-    >
-      <span className="relative flex-shrink-0">
-        <span className="absolute inset-0 rounded-full bg-white/30 animate-ping" style={{ animationDuration: '2s' }} />
-        <MessageCircle className="relative h-4 w-4" />
-      </span>
-      <span>{label}</span>
-    </a>
-  );
-}
-
 function ListingCallButton({
   telDigits,
   label,
@@ -903,7 +863,7 @@ function ListingCallButton({
   disabled?: boolean;
 }) {
   const layout =
-    'mt-2 flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold';
+    'flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold';
   if (disabled) {
     return (
       <span
@@ -953,14 +913,9 @@ function RentalCard({
   useEffect(() => {
     setImgSrc(rental.imageUrl.trim() || RENTAL_IMAGE_FALLBACK);
   }, [rental.id, rental.imageUrl]);
-  const msg = lang === 'es'
-    ? `¡Hola! Vi tu anuncio "${rental.title}" en OKcopa WC2026. ¿Está disponible?`
-    : lang === 'pt'
-    ? `Olá! Vi sua hospedagem "${rental.title}" no OKcopa Copa 2026. Está disponível?`
-    : `Hi! I found your listing "${rental.title}" on OKcopa WC2026. Is it available?`;
-  const waDigits = rental.whatsapp.replace(/\D/g, '');
-  /** Same rule as car cards: only link to the number from the listing row (sheet / import). */
-  const hasRowWhatsapp = waDigits.length >= 8;
+  const phoneDigits = rental.whatsapp.replace(/\D/g, '');
+  /** Only enable call when the listing row has a usable phone (sheet / import). */
+  const hasPhone = phoneDigits.length >= 8;
   const amenityIcon = (value: string) => {
     const v = value.toLowerCase();
     if (v.includes('wifi') || v.includes('wi-fi')) return <Zap className="h-3.5 w-3.5 text-grass-400" />;
@@ -1025,18 +980,13 @@ function RentalCard({
           </div>
         )}
         <div className="mb-3 text-xs text-gray-500">{tr.host}: {rental.host}</div>
-        <WhatsAppButton
-          href={hasRowWhatsapp ? whatsappUrl(rental.whatsapp, msg) : ''}
-          label={tr.contactWhatsApp}
-          disabled={!hasRowWhatsapp}
-        />
-        <ListingCallButton telDigits={waDigits} label={tr.contactPhone} disabled={!hasRowWhatsapp} />
+        <ListingCallButton telDigits={phoneDigits} label={tr.contactPhone} disabled={!hasPhone} />
       </div>
     </div>
   );
 }
 
-// ─── Car Card — WhatsApp / call use row `whatsapp`; both disabled (gray) when empty or too short ────
+// ─── Car Card — call uses row `whatsapp` (phone digits); disabled when empty or too short ────
 
 function CarCard({ car, highDemand, lang }: { car: CarRental; highDemand: boolean; lang: Lang }) {
   const tr = t[lang];
@@ -1044,14 +994,8 @@ function CarCard({ car, highDemand, lang }: { car: CarRental; highDemand: boolea
   const [imageHidden, setImageHidden] = useState(
     () => car.imageUrl.includes('placeholder.svg') || !car.imageUrl.trim(),
   );
-  const msg =
-    lang === 'es'
-      ? `¡Hola! Vi el alquiler de "${car.provider}" en OKcopa WC2026. ¿Está disponible?`
-      : lang === 'pt'
-        ? `Olá! Vi o aluguel da "${car.provider}" no OKcopa Copa 2026. Está disponível?`
-        : `Hi! I found "${car.provider}" car rental on OKcopa WC2026. Is it available?`;
-  const waDigits = car.whatsapp.replace(/\D/g, '');
-  const hasRowWhatsapp = waDigits.length >= 8;
+  const phoneDigits = car.whatsapp.replace(/\D/g, '');
+  const hasPhone = phoneDigits.length >= 8;
 
   return (
     <div className="group bg-pitch-800 rounded-2xl overflow-hidden border border-gray-700/50 hover:border-grass-600/50 transition-all duration-300 hover:shadow-xl hover:shadow-grass-900/20 hover:-translate-y-0.5">
@@ -1082,12 +1026,7 @@ function CarCard({ car, highDemand, lang }: { car: CarRental; highDemand: boolea
             <span className="min-w-0 line-clamp-2">{tr.carStadiumLine(stadium)}</span>
           </div>
         ) : null}
-        <WhatsAppButton
-          href={hasRowWhatsapp ? whatsappUrl(car.whatsapp, msg) : ''}
-          label={tr.contactWhatsApp}
-          disabled={!hasRowWhatsapp}
-        />
-        <ListingCallButton telDigits={waDigits} label={tr.contactPhone} disabled={!hasRowWhatsapp} />
+        <ListingCallButton telDigits={phoneDigits} label={tr.contactPhone} disabled={!hasPhone} />
       </div>
     </div>
   );
