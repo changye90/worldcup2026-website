@@ -15,7 +15,22 @@
 
 `build output directory contains links to files that can't be accessed`
 
-改完保存后点 **Retry deployment**。
+保存后必须 **重新部署最新 main**，不要对旧失败记录点 **Retry deployment**（见下）。
+
+### 重要：不要只点「重试部署」
+
+日志里若仍是：
+
+- `HEAD is now at b48137c 第一次通过 Cursor 提交`
+- `No build command specified`
+
+说明 Cloudflare 在 **重复上一次失败**，没有拉 GitHub 上已修复的 `f757b3f` 等提交。
+
+请按顺序做：
+
+1. **Settings → Builds**：确认 Build command = `npm run build`，Output = `dist`，Production branch = `main`
+2. **Deployments** → **Create deployment** → 选 **main** 最新提交（或本地 `git commit --allow-empty` 再 `git push` 触发新构建）
+3. 新日志里应出现 `npm run build`，且 **不再是** `b48137c`
 
 构建成功后站点只有 `dist` 内容。在 Cloudflare 上构建时会自动 `base: '/'`（`CF_PAGES=1`）；阿里云子目录包仍用 `VITE_BASE=./`。
 

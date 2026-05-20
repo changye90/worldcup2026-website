@@ -1,0 +1,4 @@
+# Cloudflare Pages — output dir hint (build command still set in dashboard)
+name = "worldcup2026-website"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "dist"
