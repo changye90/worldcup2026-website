@@ -1,4 +1,4 @@
-import { initWasm, Resvg } from '@resvg/resvg-wasm/index.mjs';
+import { initWasm, Resvg } from '@resvg/resvg-wasm';
 // @ts-expect-error Cloudflare Pages bundles .wasm as a module
 import wasmModule from '@resvg/resvg-wasm/index_bg.wasm';
 

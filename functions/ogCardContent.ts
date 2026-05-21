@@ -1,5 +1,5 @@
 import type { TicketOgRow } from './ogTicket';
-import matchesOg from './data/matches-og.json' with { type: 'json' };
+import matchesOg from './data/matches-og.json';
 
 export interface OgMatchSlim {
   matchNumber: number;
