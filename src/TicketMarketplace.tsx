@@ -167,12 +167,12 @@ function TicketSellPostCard({
   return (
     <article
       id={ticketPostElementId(post.id)}
-      className={`group flex flex-col overflow-hidden rounded-2xl border border-gray-700/50 bg-pitch-800 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold-500/40 hover:shadow-lg hover:shadow-gold-900/10 ${
+      className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-700/50 bg-pitch-800 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold-500/40 hover:shadow-lg hover:shadow-gold-900/10 ${
         post.isUser ? 'ring-1 ring-gold-500/30' : ''
       } ${highlighted ? 'ring-2 ring-grass-400 ring-offset-2 ring-offset-pitch-900' : ''}`}
     >
-      <div className="flex flex-1 flex-col p-3.5 sm:p-4">
-        <div className="mb-2.5 flex items-start justify-between gap-3">
+      <div className="flex min-h-0 flex-1 flex-col p-3.5 sm:p-4">
+        <div className="mb-2.5 flex shrink-0 items-start justify-between gap-3">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full border border-gold-500/30 bg-gold-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gold-300/90">
               <Tag className="h-3 w-3 shrink-0" />
@@ -185,17 +185,22 @@ function TicketSellPostCard({
             ) : null}
             <TicketShareButton post={post} tr={tr} />
           </div>
-          <div className="shrink-0 text-right">
+          <div className="min-h-[2.75rem] shrink-0 text-right">
             <p className="text-lg font-bold leading-tight tabular-nums text-gold-300">{price || '—'}</p>
-            {qty != null ? (
-              <p className="mt-0.5 text-[10px] text-gray-500">
-                {tr.ticketQty(qty)}
-                {categorySeat ? ` · ${categorySeat}` : ''}
-              </p>
-            ) : null}
+            <p className="mt-0.5 min-h-[1rem] text-[10px] text-gray-500">
+              {qty != null ? (
+                <>
+                  {tr.ticketQty(qty)}
+                  {categorySeat ? ` · ${categorySeat}` : ''}
+                </>
+              ) : (
+                '\u00a0'
+              )}
+            </p>
           </div>
         </div>
 
+        <div className="flex min-h-0 flex-1 flex-col">
         {schedule ? (
           <>
             <p className="text-sm font-semibold leading-snug text-gray-100">
@@ -218,9 +223,12 @@ function TicketSellPostCard({
           <p className="text-sm leading-snug text-gray-300">{post.summary}</p>
         )}
 
-        <TicketPostDetails text={desc} tr={tr} />
+        <div className="mt-2.5 min-h-[4.5rem] flex-1">
+          <TicketPostDetails text={desc} tr={tr} className="mt-0" />
+        </div>
+        </div>
 
-        <div className="mt-3 space-y-2 border-t border-gray-700/40 pt-3">
+        <div className="mt-auto shrink-0 space-y-2 border-t border-gray-700/40 pt-3">
           {waHref ? (
             <a
               href={waHref}
@@ -374,7 +382,7 @@ export function TicketPostGrid({
     );
   }
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {visible.map(p => (
         <TicketSellPostCard
           key={p.id}
