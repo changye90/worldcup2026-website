@@ -82,6 +82,22 @@ function dbRowToPost(row: TicketWallDbRow, localIds: Set<string>): TicketWallPos
   };
 }
 
+export async function fetchTicketPostById(id: string): Promise<TicketWallPost | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from(SUPABASE_TABLE)
+      .select('id, kind, flag, username, summary, detail, created_at_ms, created_at, payload')
+      .eq('id', id)
+      .maybeSingle();
+    if (error || !data || (data.kind !== 'buy' && data.kind !== 'sell')) return null;
+    return dbRowToPost(data as TicketWallDbRow, new Set());
+  } catch {
+    return null;
+  }
+}
+
 export async function loadSharedTicketPosts(localIds: Set<string>): Promise<TicketWallPost[] | null> {
   const supabase = getSupabaseClient();
   if (!supabase) return null;

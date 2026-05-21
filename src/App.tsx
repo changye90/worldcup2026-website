@@ -17,7 +17,12 @@ import {
 } from './data';
 import { t, languages, type Lang, type Translations } from './i18n';
 import { outrightWinnerRows, groupQualifyRows } from './oddsData';
-import { useTicketWall, TicketPostModal, TicketPostGrid, HeroBuyTicker } from './TicketMarketplace';
+import {
+  useTicketWall,
+  TicketPostModal,
+  TicketPostGrid,
+  TicketSafetyDisclaimer,
+} from './TicketMarketplace';
 import type { TicketWallKind } from './ticketPosts';
 
 /** Hero background — place `hero.png` in `public/`. */
@@ -99,8 +104,6 @@ function stadiumForCarCity(city: string): string | undefined {
 
 type Tab = 'tickets' | 'cars' | 'hotels' | 'odds';
 
-type TicketSubTab = 'buy' | 'sell';
-
 function dayIsGroupOnly(dayMatches: Match[]): boolean {
   return dayMatches.length > 0 && dayMatches.every(m => m.phase === 'group');
 }
@@ -120,9 +123,16 @@ export default function App() {
   const [lang, setLang] = useState<Lang>('en');
   const [activeCity, setActiveCity] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('tickets');
-  const [ticketSubTab, setTicketSubTab] = useState<TicketSubTab>('sell');
   const [postModal, setPostModal] = useState<TicketWallKind | null>(null);
-  const { handlePost, buyPosts, sellPosts } = useTicketWall(lang);
+  const { handlePost, sellPosts, highlightPostId } = useTicketWall(lang, {
+    onOpenSharePost: post => {
+      setActiveTab('tickets');
+      setActiveCity(null);
+      window.setTimeout(() => {
+        listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
+    },
+  });
   const [scheduleExpandedDate, setScheduleExpandedDate] = useState<string | null>(() => {
     const dates = [...new Set(matches.map(m => m.date))].sort();
     return dates[0] ?? null;
@@ -378,7 +388,6 @@ export default function App() {
             </div>
           </div>
         </div>
-        <HeroBuyTicker posts={buyPosts} tr={tr} />
       </section>
 
       {/* ── SCHEDULE (cards: blue = group, amber = knockout) ─────────────── */}
@@ -428,7 +437,11 @@ export default function App() {
             </div>
           </div>
 
-          <div ref={scheduleRef} className="scrollbar-hide flex gap-2 overflow-x-auto pb-2 pt-1 snap-x snap-mandatory sm:gap-2.5">
+          <div className="-mx-4 sm:-mx-6">
+            <div
+              ref={scheduleRef}
+              className="scrollbar-hide flex gap-2 overflow-x-auto scroll-smooth pb-2 pt-1 pl-4 pr-4 snap-x snap-mandatory sm:gap-2.5 sm:pl-6 sm:pr-6 [-webkit-overflow-scrolling:touch]"
+            >
             {scheduleDates.map(date => {
               const { day, date: d, month } = formatDate(date);
               const dayMatches = matchesForDate(date);
@@ -445,8 +458,8 @@ export default function App() {
                 : 'border-amber-600/50 bg-amber-950/25 hover:border-amber-500/70';
               const selectedRing = isSelected
                 ? groupOnly
-                  ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-pitch-800'
-                  : 'ring-2 ring-amber-400 ring-offset-2 ring-offset-pitch-800'
+                  ? 'ring-2 ring-cyan-400'
+                  : 'ring-2 ring-amber-400'
                 : '';
 
               const countCircle =
@@ -478,6 +491,7 @@ export default function App() {
                 </button>
               );
             })}
+            </div>
           </div>
 
           {scheduleExpandedDate && (
@@ -606,10 +620,8 @@ export default function App() {
           </div>
         </div>
 
-        <div className="relative">
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-pitch-900 to-transparent z-10" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-pitch-900 to-transparent z-10" />
-        <div ref={hostCitiesRef} className="overflow-x-auto pb-2">
+        <div className="-mx-4 sm:-mx-6">
+        <div ref={hostCitiesRef} className="overflow-x-auto pb-2 scroll-smooth pl-4 pr-4 sm:pl-6 sm:pr-6 [-webkit-overflow-scrolling:touch]">
           <div className="grid min-w-max grid-flow-col grid-rows-2 auto-cols-[7.5rem] gap-2 sm:auto-cols-[8.5rem] sm:gap-3">
             {cities.map(city => {
               const isActive = activeCity === city.name;
@@ -691,7 +703,7 @@ export default function App() {
                 key: 'tickets' as Tab,
                 label: tr.tabTickets,
                 icon: Ticket,
-                count: buyPosts.length + sellPosts.length,
+                count: sellPosts.length,
                 activeCls: 'bg-gradient-to-r from-gold-500 to-gold-600 text-pitch-900 shadow-lg shadow-gold-900/35',
                 badgeCls: 'bg-pitch-900/20 text-pitch-900',
               },
@@ -725,42 +737,22 @@ export default function App() {
 
         {activeTab === 'tickets' && (
           <div className="mb-10">
-            <div className="mb-5 flex rounded-xl border border-gray-700/60 bg-pitch-800/90 p-1">
-              <button
-                type="button"
-                onClick={() => setTicketSubTab('sell')}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition ${
-                  ticketSubTab === 'sell'
-                    ? 'bg-gold-500 text-pitch-900 shadow-md shadow-gold-900/25'
-                    : 'text-gray-400 hover:bg-pitch-700/80 hover:text-gold-200'
-                }`}
-              >
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <h4 className="flex items-center gap-2 text-sm font-semibold text-gold-200">
                 <Tag className="h-4 w-4 shrink-0" />
                 {tr.tabTicketSell}
-                <span className="rounded-full bg-pitch-900/15 px-1.5 py-px text-[10px] font-mono tabular-nums">
-                  {sellPosts.length}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTicketSubTab('buy')}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition ${
-                  ticketSubTab === 'buy'
-                    ? 'bg-sky-500 text-pitch-950 shadow-md shadow-sky-900/30'
-                    : 'text-gray-400 hover:bg-pitch-700/80 hover:text-sky-200'
-                }`}
-              >
-                <Search className="h-4 w-4 shrink-0" />
-                {tr.tabTicketBuy}
-                <span className="rounded-full bg-pitch-950/20 px-1.5 py-px text-[10px] font-mono tabular-nums">{buyPosts.length}</span>
-              </button>
+              </h4>
+              <span className="rounded-full border border-gold-500/30 bg-gold-500/10 px-2.5 py-0.5 text-xs font-mono tabular-nums text-gold-300">
+                {sellPosts.length}
+              </span>
             </div>
-
-            {ticketSubTab === 'buy' ? (
-              <TicketPostGrid kind="buy" posts={buyPosts} tr={tr} lang={lang} />
-            ) : (
-              <TicketPostGrid kind="sell" posts={sellPosts} tr={tr} lang={lang} activeCity={activeCity} />
-            )}
+            <TicketPostGrid
+              posts={sellPosts}
+              tr={tr}
+              lang={lang}
+              activeCity={activeCity}
+              highlightPostId={highlightPostId}
+            />
           </div>
         )}
         {activeTab === 'hotels' && (
@@ -829,7 +821,6 @@ export default function App() {
           onSubmit={post => {
             handlePost(post);
             setActiveTab('tickets');
-            setTicketSubTab(post.kind === 'buy' ? 'buy' : 'sell');
           }}
         />
       ) : null}
@@ -837,6 +828,7 @@ export default function App() {
       {/* ── FOOTER ────────────────────────────────────────────────────── */}
       <footer className="bg-pitch-800 border-t border-grass-700/20 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
+          <TicketSafetyDisclaimer tr={tr} />
           <div className="flex items-center justify-center gap-3 mb-2">
             <span className="text-white font-bold">{tr.brand}</span>
             <span className="text-grass-400">· World Cup 2026</span>

@@ -22,7 +22,21 @@ Pages → 项目 → **Settings → Environment variables**（Production）添�
 
 保存后 **Retry deployment** 或再 push 一次，否则线上发帖仍只存浏览器、别人看不到。
 
-Supabase 表 `ticket_wall_posts` 需已建表，且 RLS 允许 `anon` 的 `select` / `insert` / `update`（见下文或此前 SQL）。
+**WhatsApp 链接预览**（分享 `?ticket=` 时显示标题/描述/图）还需：
+
+| 变量名 | 值 |
+|--------|-----|
+| `SUPABASE_URL` | 与 `VITE_SUPABASE_URL` 相同（Functions 不读 `VITE_` 前缀） |
+| `SUPABASE_ANON_KEY` | 与 `VITE_SUPABASE_ANON_KEY` 相同 |
+| `SITE_ORIGIN` | 可选，`https://okcopa.com` |
+
+票务分享预览图由 **`/og/ticket?id=帖子ID`** 动态生成（卡片对阵样式），无需手传每张图。改赛程后执行 `npm run export:og-matches`。详见 [docs/whatsapp-link-preview.md](./whatsapp-link-preview.md)。
+
+Supabase 表 `ticket_wall_posts` 需已建表，且 RLS 允许 `anon` 的 `select` / `insert` / `update`。完整 SQL 见 [docs/supabase-ticket-wall.sql](./supabase-ticket-wall.sql)。
+
+表单字段（含 `category`、`seatDetails`）存在 **`payload` jsonb** 里，加座位详情**不用改表结构**，部署新前端即可。
+
+批量导入 Excel 票务行见 [docs/import-ticket-wall-supabase.md](./import-ticket-wall-supabase.md)（`npm run import:tickets -- ./data/你的表.xlsx`）。
 
 日志里若出现 **`No build command specified. Skipping build step.`** 紧接着 **`Output directory "dist" not found`**：就是没配 Build command（`dist` 在 `.gitignore` 里，必须构建才会生成）。
 

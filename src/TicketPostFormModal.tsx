@@ -14,7 +14,6 @@ const fieldBase =
   'w-full rounded-xl border border-gray-600/80 bg-[rgb(6,12,22)] px-3.5 py-2.5 text-sm focus:border-grass-500/50 focus:outline-none focus:ring-1 focus:ring-grass-500/30';
 const sellFieldCls = `${fieldBase} text-amber-300 placeholder:text-gray-500`;
 const buyFieldCls = `${fieldBase} text-sky-300 placeholder:text-gray-500`;
-
 function digitsOnly(raw: string, maxLen: number): string {
   return raw.replace(/\D/g, '').slice(0, maxLen);
 }
@@ -79,6 +78,7 @@ function SellForm({
   const [matchFilter, setMatchFilter] = useState('');
   const [quantity, setQuantity] = useState('');
   const [category, setCategory] = useState('');
+  const [seatDetails, setSeatDetails] = useState('');
   const [sellerName, setSellerName] = useState('');
   const [priceNegotiable, setPriceNegotiable] = useState(false);
   const [priceAmount, setPriceAmount] = useState('');
@@ -123,6 +123,7 @@ function SellForm({
           matches: allMatches,
           quantity: qtyNum!,
           category: category.trim() || undefined,
+          seatDetails: seatDetails.trim() || undefined,
           name: sellerName.trim() || undefined,
           priceType: priceNegotiable ? 'negotiable' : 'fixed',
           priceAmount: priceNegotiable ? undefined : priceNum!,
@@ -203,6 +204,18 @@ function SellForm({
             className={sellFieldCls}
           />
         </div>
+      </div>
+
+      <div>
+        <FieldLabel>{tr.formLabelSeatDetails}</FieldLabel>
+        <input
+          type="text"
+          value={seatDetails}
+          onChange={e => setSeatDetails(e.target.value)}
+          placeholder={tr.formPlaceholderSeatDetails}
+          className={sellFieldCls}
+          autoComplete="off"
+        />
       </div>
 
       <div>
@@ -297,6 +310,7 @@ function BuyForm({
   const [targetMatch, setTargetMatch] = useState('');
   const [quantity, setQuantity] = useState('');
   const [category, setCategory] = useState('');
+  const [seatDetails, setSeatDetails] = useState('');
   const [budget, setBudget] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const qtyNum = parseQuantityInput(quantity);
@@ -311,6 +325,7 @@ function BuyForm({
           targetMatch: targetMatch.trim(),
           quantity: qtyNum!,
           category: category.trim() || undefined,
+          seatDetails: seatDetails.trim() || undefined,
           budget: budget.trim() || undefined,
           whatsapp: whatsapp.trim(),
         },
@@ -355,6 +370,18 @@ function BuyForm({
           value={category}
           onChange={e => setCategory(e.target.value)}
           placeholder={tr.formPlaceholderCategory}
+          className={`${buyFieldCls} mt-1`}
+          autoComplete="off"
+        />
+      </div>
+      <div>
+        <FieldLabel>{tr.formLabelSeatDetails}</FieldLabel>
+        <p className={hintCls}>{tr.formHintBuySeatDetails}</p>
+        <input
+          type="text"
+          value={seatDetails}
+          onChange={e => setSeatDetails(e.target.value)}
+          placeholder={tr.formPlaceholderSeatDetails}
           className={`${buyFieldCls} mt-1`}
           autoComplete="off"
         />

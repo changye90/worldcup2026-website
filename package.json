@@ -20,9 +20,12 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "sync:feishu-cars": "node scripts/sync-feishu-car-rentals.mjs",
     "import:cars": "node scripts/import-car-rentals-sheet.mjs",
-    "import:hotels": "node scripts/import-hotel-supply.mjs ./data/hotel-supply.xlsx"
+    "import:hotels": "node scripts/import-hotel-supply.mjs ./data/hotel-supply.xlsx",
+    "export:og-matches": "node scripts/export-matches-og.mjs",
+    "import:tickets": "node scripts/import-ticket-wall-supabase.mjs"
   },
   "dependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
     "@supabase/supabase-js": "^2.57.4",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",

@@ -1,17 +1,17 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Tag, Search, Clock, MessageCircle, ChevronDown } from 'lucide-react';
+import { Tag, Clock, MessageCircle, ChevronDown, Share2, Check, ShieldAlert } from 'lucide-react';
 import type { Lang, Translations } from './i18n';
 import {
   seedTicketWallPosts,
   loadUserTicketPosts,
   loadSharedTicketPosts,
+  fetchTicketPostById,
   persistSharedTicketPost,
   persistUserTicketPost,
   type TicketWallPost,
-  type TicketWallKind,
 } from './ticketPosts';
-import type { TicketBuyPayload, TicketSellPayload } from './ticketPostForm';
-import { getPostWhatsapp } from './ticketPostForm';
+import type { TicketSellPayload } from './ticketPostForm';
+import { formatCategorySeatLine, getWhatsappHref } from './ticketPostForm';
 import {
   formatMatchKickoffDisplay,
   hostCountryForCity,
@@ -22,23 +22,58 @@ import {
   sellUserDescription,
   whatsappPrefillContext,
 } from './sellPostResolve';
+import {
+  clearTicketShareFromUrl,
+  getTicketIdFromUrl,
+  scrollToTicketPost,
+  shareTicketPost,
+  ticketPostElementId,
+} from './ticketShare';
+
+function TicketShareButton({ post, tr }: { post: TicketWallPost; tr: Translations }) {
+  const [status, setStatus] = useState<'idle' | 'copied'>('idle');
+
+  const onShare = async () => {
+    const result = await shareTicketPost(post, tr);
+    if (result === 'copied') {
+      setStatus('copied');
+      window.setTimeout(() => setStatus('idle'), 2000);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => void onShare()}
+      className="inline-flex items-center gap-1 rounded-lg border border-gray-600/70 bg-pitch-900/60 px-2 py-1 text-[10px] font-semibold text-gray-400 transition hover:border-gray-500 hover:text-white"
+      aria-label={tr.ticketShareAria}
+    >
+      {status === 'copied' ? (
+        <>
+          <Check className="h-3 w-3 text-grass-400" />
+          <span className="text-grass-300">{tr.ticketShareCopied}</span>
+        </>
+      ) : (
+        <>
+          <Share2 className="h-3 w-3" />
+          <span>{tr.ticketShare}</span>
+        </>
+      )}
+    </button>
+  );
+}
 
 /** Details: clamp to 4 lines; tap to expand/collapse when longer. */
 function TicketPostDetails({
   text,
   tr,
   className = 'mt-2.5',
-  tone = 'sell',
 }: {
   text: string;
   tr: Translations;
   className?: string;
-  tone?: 'sell' | 'buy';
 }) {
-  const toggleCls =
-    tone === 'buy'
-      ? 'text-sky-400/90 hover:text-sky-300'
-      : 'text-gold-400/90 hover:text-gold-300';
+  const toggleCls = 'text-gold-400/90 hover:text-gold-300';
   const trimmed = text.trim();
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
@@ -74,6 +109,27 @@ function TicketPostDetails({
   );
 }
 
+/** Site-wide ticket marketplace safety notice (footer). */
+export function TicketSafetyDisclaimer({ tr }: { tr: Translations }) {
+  return (
+    <div
+      role="note"
+      className="mx-auto mb-6 max-w-2xl border-t border-gray-700/50 pt-5 text-left"
+    >
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <ShieldAlert className="h-3.5 w-3.5 shrink-0 text-gold-500/80" aria-hidden />
+        {tr.ticketBuyDisclaimerTitle}
+      </p>
+      <p className="mt-2 text-[11px] leading-relaxed text-gray-500">{tr.ticketBuyDisclaimerIntro}</p>
+      <ul className="mt-2 list-disc space-y-1 pl-4 text-[10px] leading-relaxed text-gray-600">
+        {tr.ticketBuyDisclaimerBullets.map((line, i) => (
+          <li key={i}>{line}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function timeAgo(ts: number, tr: Translations): string {
   const mins = Math.floor((Date.now() - ts) / 60000);
   if (mins < 1) return tr.ticketWallJustNow;
@@ -83,38 +139,17 @@ function timeAgo(ts: number, tr: Translations): string {
   return tr.ticketWallDaysAgo(Math.floor(hrs / 24));
 }
 
-export function formatTicketWallLine(post: TicketWallPost, tr: Translations): string {
-  const verb = post.kind === 'buy' ? tr.ticketWallSeekingVerb : tr.ticketWallHasVerb;
-  return `${post.flag} ${post.username} ${verb} ${post.summary}`;
-}
-
-export function HeroBuyTicker({ posts, tr }: { posts: TicketWallPost[]; tr: Translations }) {
-  const lines =
-    posts.length > 0 ? posts.map(p => formatTicketWallLine(p, tr)) : [tr.heroBuyTickerEmpty];
-  const track = [...lines, ...lines];
-
-  return (
-    <div className="relative z-10 border-t border-sky-500/25 bg-pitch-950/88 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:px-6">
-        <span className="hidden shrink-0 items-center gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-300 sm:inline-flex">
-          <Search className="h-3 w-3" />
-          {tr.heroBuyTickerLabel}
-        </span>
-        <div className="min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_6%,black_94%,transparent)]">
-          <div className="flex w-max animate-buy-ticker items-center gap-10 whitespace-nowrap">
-            {track.map((line, i) => (
-              <span key={`${i}-${line}`} className="text-sm text-gray-300">
-                {line}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TicketSellPostCard({ post, tr, lang }: { post: TicketWallPost; tr: Translations; lang: Lang }) {
+function TicketSellPostCard({
+  post,
+  tr,
+  lang,
+  highlighted,
+}: {
+  post: TicketWallPost;
+  tr: Translations;
+  lang: Lang;
+  highlighted?: boolean;
+}) {
   const p = post.payload as TicketSellPayload | undefined;
   const schedule = primaryScheduleMatchForSellPost(post);
   const allRes = resolvedSellMatches(post);
@@ -122,20 +157,19 @@ function TicketSellPostCard({ post, tr, lang }: { post: TicketWallPost; tr: Tran
   const country = schedule ? hostCountryForCity(schedule.city) : undefined;
   const price = sellPriceLine(post, tr);
   const desc = sellUserDescription(post);
-  const waDigits = getPostWhatsapp(post);
-  const waHref = waDigits
-    ? `https://wa.me/${waDigits}?text=${encodeURIComponent(tr.ticketWhatsappPrefill(whatsappPrefillContext(post)))}`
-    : null;
+  const waHref = getWhatsappHref(post, tr.ticketWhatsappPrefill(whatsappPrefillContext(post)));
   const qty = p?.quantity != null && p.quantity >= 1 ? p.quantity : null;
+  const categorySeat = p ? formatCategorySeatLine(p) : null;
   const metaLine = schedule
     ? [country, schedule.city, schedule.stadium].filter(Boolean).join(' · ')
     : null;
 
   return (
     <article
+      id={ticketPostElementId(post.id)}
       className={`group flex flex-col overflow-hidden rounded-2xl border border-gray-700/50 bg-pitch-800 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold-500/40 hover:shadow-lg hover:shadow-gold-900/10 ${
         post.isUser ? 'ring-1 ring-gold-500/30' : ''
-      }`}
+      } ${highlighted ? 'ring-2 ring-grass-400 ring-offset-2 ring-offset-pitch-900' : ''}`}
     >
       <div className="flex flex-1 flex-col p-3.5 sm:p-4">
         <div className="mb-2.5 flex items-start justify-between gap-3">
@@ -149,13 +183,14 @@ function TicketSellPostCard({ post, tr, lang }: { post: TicketWallPost; tr: Tran
                 {tr.ticketWallYourPost}
               </span>
             ) : null}
+            <TicketShareButton post={post} tr={tr} />
           </div>
           <div className="shrink-0 text-right">
             <p className="text-lg font-bold leading-tight tabular-nums text-gold-300">{price || '—'}</p>
             {qty != null ? (
               <p className="mt-0.5 text-[10px] text-gray-500">
                 {tr.ticketQty(qty)}
-                {p?.category?.trim() ? ` · ${p.category.trim()}` : ''}
+                {categorySeat ? ` · ${categorySeat}` : ''}
               </p>
             ) : null}
           </div>
@@ -208,80 +243,14 @@ function TicketSellPostCard({ post, tr, lang }: { post: TicketWallPost; tr: Tran
   );
 }
 
-function TicketBuyPostCard({ post, tr }: { post: TicketWallPost; tr: Translations }) {
-  const p = post.payload as TicketBuyPayload | undefined;
-  const body = p?.targetMatch?.trim() ? p.targetMatch.trim() : post.summary;
-  const budget = p?.budget?.trim();
-  const waDigits = getPostWhatsapp(post);
-  const waHref = waDigits
-    ? `https://wa.me/${waDigits}?text=${encodeURIComponent(tr.ticketWhatsappPrefill(whatsappPrefillContext(post)))}`
-    : null;
-
-  return (
-    <article
-      className={`group flex flex-col overflow-hidden rounded-2xl border border-gray-700/50 bg-pitch-800 transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-500/40 hover:shadow-lg hover:shadow-sky-900/10 ${
-        post.isUser ? 'ring-1 ring-sky-500/30' : ''
-      }`}
-    >
-      <div className="flex flex-1 flex-col p-3.5 sm:p-4">
-        <div className="mb-2.5 flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-300/90">
-              <Search className="h-3 w-3 shrink-0" />
-              {tr.tabTicketBuy}
-            </span>
-            {post.isUser ? (
-              <span className="rounded bg-grass-500/15 px-1.5 py-px text-[10px] font-medium text-grass-300/90">
-                {tr.ticketWallYourPost}
-              </span>
-            ) : null}
-          </div>
-          {budget ? (
-            <p className="shrink-0 text-right text-sm font-bold tabular-nums text-sky-300">{budget}</p>
-          ) : null}
-        </div>
-
-        <p className="text-sm font-semibold leading-snug text-gray-100">
-          <span className="mr-1.5" aria-hidden>
-            {post.flag}
-          </span>
-          {post.username}
-          <span className="font-normal text-gray-500"> · {tr.ticketWallSeekingVerb}</span>
-        </p>
-        <TicketPostDetails text={body} tr={tr} className="mt-2" tone="buy" />
-        {p?.quantity != null && p.quantity >= 1 ? (
-          <p className="mt-1.5 text-[11px] text-gray-500">
-            {tr.ticketQty(p.quantity)}
-            {p.category?.trim() ? ` · ${p.category.trim()}` : ''}
-          </p>
-        ) : null}
-
-        <div className="mt-3 space-y-2 border-t border-gray-700/40 pt-3">
-          {waHref ? (
-            <a
-              href={waHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white transition hover:brightness-110"
-              style={{ backgroundColor: '#25D366' }}
-            >
-              <MessageCircle className="h-4 w-4 shrink-0" />
-              {tr.contactWhatsApp}
-            </a>
-          ) : null}
-          <p className="flex items-center gap-1 text-[10px] text-gray-600">
-            <Clock className="h-3 w-3 shrink-0" />
-            <span>{timeAgo(post.createdAt, tr)}</span>
-          </p>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-
-export function useTicketWall(_lang: Lang) {
+export function useTicketWall(
+  _lang: Lang,
+  options?: { onOpenSharePost?: (post: TicketWallPost) => void },
+) {
   const [userPosts, setUserPosts] = useState<TicketWallPost[]>(() => loadUserTicketPosts());
+  const [highlightPostId, setHighlightPostId] = useState<string | null>(null);
+  const [pendingShareId, setPendingShareId] = useState<string | null>(() => getTicketIdFromUrl());
+  const shareResolvedRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -304,6 +273,57 @@ export function useTicketWall(_lang: Lang) {
     };
   }, []);
 
+  const mergePost = useCallback((post: TicketWallPost) => {
+    setUserPosts(prev => {
+      const merged = new Map<string, TicketWallPost>();
+      merged.set(post.id, post);
+      prev.forEach(p => merged.set(p.id, p));
+      return Array.from(merged.values())
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, 200);
+    });
+  }, []);
+
+  const openSharedPost = useCallback(
+    (post: TicketWallPost) => {
+      setHighlightPostId(post.id);
+      options?.onOpenSharePost?.(post);
+      window.setTimeout(() => scrollToTicketPost(post.id), 280);
+      window.setTimeout(() => setHighlightPostId(null), 4500);
+    },
+    [options],
+  );
+
+  useEffect(() => {
+    if (!pendingShareId || shareResolvedRef.current) return;
+
+    const local = [...userPosts, ...seedTicketWallPosts].find(
+      p => p.id === pendingShareId && p.kind === 'sell',
+    );
+    if (local) {
+      shareResolvedRef.current = true;
+      setPendingShareId(null);
+      clearTicketShareFromUrl();
+      openSharedPost(local);
+      return;
+    }
+
+    let active = true;
+    void fetchTicketPostById(pendingShareId).then(fetched => {
+      if (!active || shareResolvedRef.current) return;
+      shareResolvedRef.current = true;
+      setPendingShareId(null);
+      clearTicketShareFromUrl();
+      if (fetched?.kind === 'sell') {
+        mergePost(fetched);
+        openSharedPost(fetched);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [pendingShareId, userPosts, mergePost, openSharedPost]);
+
   const handlePost = useCallback((post: TicketWallPost) => {
     persistUserTicketPost(post);
     setUserPosts(prev => {
@@ -317,55 +337,53 @@ export function useTicketWall(_lang: Lang) {
     return post;
   }, []);
 
-  const { buyPosts, sellPosts } = useMemo(() => {
-    const merged = [...userPosts, ...seedTicketWallPosts].sort((a, b) => b.createdAt - a.createdAt);
-    return {
-      buyPosts: merged.filter(p => p.kind === 'buy'),
-      sellPosts: merged.filter(p => p.kind === 'sell'),
-    };
+  const sellPosts = useMemo(() => {
+    return [...userPosts, ...seedTicketWallPosts]
+      .filter(p => p.kind === 'sell')
+      .sort((a, b) => b.createdAt - a.createdAt);
   }, [userPosts]);
 
-  return { userPosts, handlePost, buyPosts, sellPosts };
+  return { userPosts, handlePost, sellPosts, highlightPostId };
 }
 
 export { TicketPostFormModal as TicketPostModal } from './TicketPostFormModal';
 
 export function TicketPostGrid({
-  kind,
   posts,
   tr,
   lang,
   activeCity = null,
+  highlightPostId = null,
 }: {
-  kind: TicketWallKind;
   posts: TicketWallPost[];
   tr: Translations;
   lang: Lang;
   activeCity?: string | null;
+  highlightPostId?: string | null;
 }) {
-  const isSell = kind === 'sell';
   const visible = useMemo(() => {
-    if (!isSell) return posts;
     if (!activeCity) return posts;
     return posts.filter(p => sellPostPassesCityFilter(p, activeCity));
-  }, [isSell, posts, activeCity]);
+  }, [posts, activeCity]);
 
   if (visible.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-gray-700/60 bg-pitch-800/40 px-6 py-14 text-center text-sm text-gray-500">
-        {isSell ? tr.ticketWallEmptySell : tr.ticketWallEmptyBuy}
+        {tr.ticketWallEmptySell}
       </div>
     );
   }
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {visible.map(p =>
-        p.kind === 'sell' ? (
-          <TicketSellPostCard key={p.id} post={p} tr={tr} lang={lang} />
-        ) : (
-          <TicketBuyPostCard key={p.id} post={p} tr={tr} />
-        ),
-      )}
+      {visible.map(p => (
+        <TicketSellPostCard
+          key={p.id}
+          post={p}
+          tr={tr}
+          lang={lang}
+          highlighted={highlightPostId === p.id}
+        />
+      ))}
     </div>
   );
 }

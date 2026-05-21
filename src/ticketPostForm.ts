@@ -7,6 +7,7 @@ export interface TicketSellPayload {
   matches: string[];
   quantity: number;
   category?: string;
+  seatDetails?: string;
   name?: string;
   priceType: 'fixed' | 'negotiable';
   priceAmount?: number;
@@ -19,6 +20,7 @@ export interface TicketBuyPayload {
   targetMatch: string;
   quantity: number;
   category?: string;
+  seatDetails?: string;
   budget?: string;
   whatsapp: string;
 }
@@ -40,6 +42,7 @@ export function buildSellSummary(p: TicketSellPayload): string {
   parts.push(p.matches.join(' / '));
   parts.push(`${p.quantity} ticket${p.quantity !== 1 ? 's' : ''}`);
   if (p.category) parts.push(p.category);
+  if (p.seatDetails?.trim()) parts.push(p.seatDetails.trim());
   if (p.priceType === 'negotiable') parts.push('Negotiable');
   else if (p.priceAmount != null) parts.push(`$${p.priceAmount} USD`);
   return parts.join(' · ');
@@ -48,6 +51,7 @@ export function buildSellSummary(p: TicketSellPayload): string {
 export function buildBuySummary(p: TicketBuyPayload): string {
   const parts: string[] = [p.targetMatch.trim(), `${p.quantity} ticket${p.quantity !== 1 ? 's' : ''}`];
   if (p.category) parts.push(p.category);
+  if (p.seatDetails?.trim()) parts.push(p.seatDetails.trim());
   if (p.budget?.trim()) parts.push(p.budget.trim());
   return parts.join(' · ');
 }
@@ -58,6 +62,7 @@ export function buildSellDetailLines(p: TicketSellPayload, tr: Translations): st
     `${tr.formLabelQuantity}: ${p.quantity}`,
   ];
   if (p.category) lines.push(`${tr.formLabelCategory}: ${p.category}`);
+  if (p.seatDetails?.trim()) lines.push(`${tr.formLabelSeatDetails}: ${p.seatDetails.trim()}`);
   if (p.name?.trim()) lines.push(`${tr.formLabelName}: ${p.name.trim()}`);
   if (p.priceType === 'negotiable') lines.push(`${tr.formLabelPrice}: ${tr.formPriceNegotiable}`);
   else if (p.priceAmount != null) lines.push(`${tr.formLabelPrice}: $${p.priceAmount} USD`);
@@ -75,6 +80,7 @@ export function buildBuyDetailLines(p: TicketBuyPayload, tr: Translations): stri
     `${tr.formLabelQuantity}: ${p.quantity}`,
   ];
   if (p.category) lines.push(`${tr.formLabelCategory}: ${p.category}`);
+  if (p.seatDetails?.trim()) lines.push(`${tr.formLabelSeatDetails}: ${p.seatDetails.trim()}`);
   if (p.budget?.trim()) lines.push(`${tr.formLabelBudget}: ${p.budget.trim()}`);
   lines.push(`${tr.formLabelWhatsapp}: ${p.whatsapp}`);
   return lines;
@@ -122,8 +128,42 @@ export function createWallPostFromBuy(
 
 export type TicketWallPayload = TicketSellPayload | TicketBuyPayload;
 
+/** Category + seat line for wall cards (e.g. "Cat 2 · Sec 102 Row 12"). */
+export function formatCategorySeatLine(p: { category?: string; seatDetails?: string }): string | null {
+  const cat = p.category?.trim();
+  const seat = p.seatDetails?.trim();
+  if (cat && seat) return `${cat} · ${seat}`;
+  if (cat) return cat;
+  if (seat) return seat;
+  return null;
+}
+
 export function getPostWhatsapp(post: TicketWallPost): string | null {
   if (!post.payload || !('whatsapp' in post.payload)) return null;
-  const wa = whatsappDigits(post.payload.whatsapp);
-  return wa.length >= 8 ? wa : null;
+  const raw = String(post.payload.whatsapp).trim();
+  const digits = whatsappDigits(raw);
+  return digits.length >= 8 ? digits : null;
+}
+
+/** Phone → wa.me with prefill; full https / wa.me/message/ links used as-is. */
+export function getWhatsappHref(post: TicketWallPost, prefill: string): string | null {
+  if (!post.payload || !('whatsapp' in post.payload)) return null;
+  const raw = String(post.payload.whatsapp).trim();
+  if (!raw) return null;
+
+  if (/^https?:\/\//i.test(raw) || /wa\.me\//i.test(raw)) {
+    const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    if (/wa\.me\/message\//i.test(url)) return url;
+    const digits = whatsappDigits(url);
+    if (digits.length >= 8) {
+      return `https://wa.me/${digits}?text=${encodeURIComponent(prefill)}`;
+    }
+    return url;
+  }
+
+  const digits = whatsappDigits(raw);
+  if (digits.length >= 8) {
+    return `https://wa.me/${digits}?text=${encodeURIComponent(prefill)}`;
+  }
+  return null;
 }
