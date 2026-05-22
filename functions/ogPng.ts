@@ -1,7 +1,7 @@
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
 // @ts-expect-error Cloudflare Pages bundles .wasm as a module
 import wasmModule from '@resvg/resvg-wasm/index_bg.wasm';
-import { OG_FONT_BUFFERS } from './ogFontBuffers';
+import { getOgFontBuffers } from './ogFontBuffers';
 
 let wasmReady: Promise<void> | null = null;
 
@@ -17,7 +17,7 @@ export async function svgToPng(svg: string, _origin?: string): Promise<Uint8Arra
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'width', value: 1200 },
     font: {
-      fontBuffers: OG_FONT_BUFFERS,
+      fontBuffers: getOgFontBuffers(),
       defaultFontFamily: 'Inter',
       sansSerifFamily: 'Inter',
     },

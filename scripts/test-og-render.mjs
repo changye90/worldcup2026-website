@@ -11,7 +11,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const wasm = readFileSync(join(root, 'node_modules/@resvg/resvg-wasm/index_bg.wasm'));
 await initWasm(wasm);
 
-const { OG_FONT_BUFFERS } = await import(join(root, 'functions/ogFontBuffers.ts'));
+const { getOgFontBuffers } = await import(join(root, 'functions/ogFontBuffers.ts'));
+const OG_FONT_BUFFERS = getOgFontBuffers();
 const { buildCardSvg } = await import(join(root, 'functions/ogCardSvg.ts'));
 
 const svg = buildCardSvg({
