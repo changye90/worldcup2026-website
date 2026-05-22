@@ -16,6 +16,7 @@ import {
   type Match,
 } from './data';
 import { t, languages, type Lang, type Translations } from './i18n';
+import { AnalyticsEvent, track, trackPageView } from './analytics';
 import { outrightWinnerRows, groupQualifyRows } from './oddsData';
 import {
   useTicketWall,
@@ -147,6 +148,13 @@ export default function App() {
   const listingsRef = useRef<HTMLElement>(null);
   const tr = t[lang];
 
+  const pageViewBoot = useRef(false);
+
+  useEffect(() => {
+    trackPageView({ tab: activeTab, source: pageViewBoot.current ? 'tab' : 'load' });
+    pageViewBoot.current = true;
+  }, [activeTab]);
+
   useEffect(() => {
     const handler = () => setNavSolid(window.scrollY > 60);
     window.addEventListener('scroll', handler, { passive: true });
@@ -202,7 +210,15 @@ export default function App() {
     !hotelsExpanded &&
     filteredHotels.length > CAR_GRID_PREVIEW;
 
-  const filterByCityFromMatch = (city: string) => {
+  const filterByCityFromMatch = (city: string, match?: Match) => {
+    if (match) {
+      track(AnalyticsEvent.ScheduleMatch, {
+        match_id: match.id,
+        match_number: match.matchNumber,
+        city: match.city,
+        date: match.date,
+      });
+    }
     setActiveCity(prev => (prev === city ? null : city));
     setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
@@ -236,7 +252,10 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => scheduleSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              onClick={() => {
+                track(AnalyticsEvent.HeaderSchedule);
+                scheduleSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-white/5"
             >
               <Calendar className="w-3.5 h-3.5" />
@@ -246,7 +265,12 @@ export default function App() {
             {/* Language switcher */}
             <div id="lang-menu" className="relative">
               <button
-                onClick={() => setLangOpen(o => !o)}
+                onClick={() => {
+                  setLangOpen(o => {
+                    if (!o) track(AnalyticsEvent.HeaderLangOpen, { lang });
+                    return !o;
+                  });
+                }}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl bg-pitch-700/80 border border-gray-700 hover:border-grass-600/60 text-sm text-gray-300 hover:text-white transition-all duration-200"
               >
                 <span className="text-base leading-none">{currentLang.flag}</span>
@@ -259,7 +283,11 @@ export default function App() {
                   {languages.map(l => (
                     <button
                       key={l.code}
-                      onClick={() => { setLang(l.code); setLangOpen(false); }}
+                      onClick={() => {
+                        track(AnalyticsEvent.HeaderLangSelect, { lang: l.code, from: lang });
+                        setLang(l.code);
+                        setLangOpen(false);
+                      }}
                       className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors duration-150 ${
                         lang === l.code
                           ? 'bg-grass-600/20 text-grass-400'
@@ -317,7 +345,10 @@ export default function App() {
               <div className="mb-5 flex flex-wrap gap-3">
                 <button
                   type="button"
-                  onClick={() => setPostModal('sell')}
+                  onClick={() => {
+                    track(AnalyticsEvent.HeroSell);
+                    setPostModal('sell');
+                  }}
                   className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 px-5 py-3 text-sm font-bold text-pitch-900 shadow-lg shadow-gold-900/35 transition hover:brightness-110 active:scale-[0.98]"
                 >
                   <Tag className="h-4 w-4" />
@@ -325,7 +356,10 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPostModal('buy')}
+                  onClick={() => {
+                    track(AnalyticsEvent.HeroBuy);
+                    setPostModal('buy');
+                  }}
                   className="inline-flex items-center gap-2 rounded-xl border-2 border-sky-400/60 bg-sky-500/15 px-5 py-3 text-sm font-bold text-sky-100 shadow-lg shadow-black/25 transition hover:border-sky-300 hover:bg-sky-500/25 active:scale-[0.98]"
                 >
                   <Search className="h-4 w-4 text-sky-300" />
@@ -375,6 +409,7 @@ export default function App() {
                     key={id}
                     type="button"
                     onClick={() => {
+                      track(AnalyticsEvent.HeroTab, { tab });
                       setActiveTab(tab);
                       setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
                     }}
@@ -481,7 +516,10 @@ export default function App() {
                 <button
                   key={date}
                   type="button"
-                  onClick={() => setScheduleExpandedDate(date)}
+                  onClick={() => {
+                    track(AnalyticsEvent.ScheduleDate, { date, match_count: dayMatches.length });
+                    setScheduleExpandedDate(date);
+                  }}
                   className={`${basePill} ${palette} ${selectedRing}`}
                 >
                   <span className="text-[10px] font-semibold uppercase leading-none text-gray-400 sm:text-xs">{day}</span>
@@ -511,7 +549,7 @@ export default function App() {
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => filterByCityFromMatch(m.city)}
+                        onClick={() => filterByCityFromMatch(m.city, m)}
                         className={`rounded-xl border bg-pitch-950/90 p-3 text-left transition hover:bg-pitch-900 sm:p-4 ${
                           isG
                             ? 'border-cyan-600/40 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.06)]'
@@ -714,7 +752,10 @@ export default function App() {
               <button
                 key={tab.key}
                 type="button"
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => {
+                  track(AnalyticsEvent.ListingsTab, { tab: tab.key });
+                  setActiveTab(tab.key);
+                }}
                 className={`flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-0 ${
                   activeTab === tab.key ? tab.activeCls : 'text-gray-400 hover:text-gray-200'
                 }`}
@@ -849,10 +890,12 @@ function ListingCallButton({
   telDigits,
   label,
   disabled,
+  onTrack,
 }: {
   telDigits: string;
   label: string;
   disabled?: boolean;
+  onTrack?: () => void;
 }) {
   const layout =
     'flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold';
@@ -870,6 +913,7 @@ function ListingCallButton({
   return (
     <a
       href={`tel:${telDigits}`}
+      onClick={() => onTrack?.()}
       className={`${layout} border-gray-600 bg-pitch-900/70 text-white transition-all duration-200 hover:border-grass-500 hover:text-grass-300`}
     >
       <Phone className="h-4 w-4 shrink-0" />
@@ -972,7 +1016,14 @@ function RentalCard({
           </div>
         )}
         <div className="mb-3 text-xs text-gray-500">{tr.host}: {rental.host}</div>
-        <ListingCallButton telDigits={phoneDigits} label={tr.contactPhone} disabled={!hasPhone} />
+        <ListingCallButton
+          telDigits={phoneDigits}
+          label={tr.contactPhone}
+          disabled={!hasPhone}
+          onTrack={() =>
+            track(AnalyticsEvent.HotelCall, { rental_id: rental.id, city: rental.city, has_phone: hasPhone })
+          }
+        />
       </div>
     </div>
   );
@@ -1018,7 +1069,14 @@ function CarCard({ car, highDemand, lang }: { car: CarRental; highDemand: boolea
             <span className="min-w-0 line-clamp-2">{tr.carStadiumLine(stadium)}</span>
           </div>
         ) : null}
-        <ListingCallButton telDigits={phoneDigits} label={tr.contactPhone} disabled={!hasPhone} />
+        <ListingCallButton
+          telDigits={phoneDigits}
+          label={tr.contactPhone}
+          disabled={!hasPhone}
+          onTrack={() =>
+            track(AnalyticsEvent.CarCall, { car_id: car.id, city: car.city, has_phone: hasPhone })
+          }
+        />
       </div>
     </div>
   );

@@ -34,6 +34,8 @@ Pages → 项目 → **Settings → Environment variables**（Production）添�
 
 Supabase 表 `ticket_wall_posts` 需已建表，且 RLS 允许 `anon` 的 `select` / `insert` / `update`。完整 SQL 见 [docs/supabase-ticket-wall.sql](./supabase-ticket-wall.sql)。
 
+**访问与点击埋点**（PV/UV、WhatsApp、电话、头部/赛程按钮）写入表 `site_analytics_events`，使用同一套 `VITE_SUPABASE_*`。建表 SQL：[docs/supabase-analytics.sql](./supabase-analytics.sql)（只需执行一次）。
+
 表单字段（含 `category`、`seatDetails`）存在 **`payload` jsonb** 里，加座位详情**不用改表结构**，部署新前端即可。
 
 批量导入 Excel 票务行见 [docs/import-ticket-wall-supabase.md](./import-ticket-wall-supabase.md)（`npm run import:tickets -- ./data/你的表.xlsx`）。

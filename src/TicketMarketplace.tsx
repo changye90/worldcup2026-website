@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { Tag, Clock, MessageCircle, ChevronDown, Share2, Check, ShieldAlert } from 'lucide-react';
+import { AnalyticsEvent, track } from './analytics';
 import type { Lang, Translations } from './i18n';
 import {
   seedTicketWallPosts,
@@ -234,6 +235,13 @@ function TicketSellPostCard({
               href={waHref}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() =>
+                track(AnalyticsEvent.TicketWhatsapp, {
+                  post_id: post.id,
+                  kind: post.kind,
+                  is_user: Boolean(post.isUser),
+                })
+              }
               className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white transition hover:brightness-110"
               style={{ backgroundColor: '#25D366' }}
             >
