@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
-const fontsDir = path.join(root, 'functions/fonts');
+const fontsDir = path.join(root, 'public/fonts');
 const fallbackPng = path.join(root, 'public/og-ticket-fallback.png');
 
 function b64(file) {
@@ -15,7 +15,11 @@ function b64(file) {
 const inter400 = path.join(fontsDir, 'inter-latin-400-normal.ttf');
 const inter700 = path.join(fontsDir, 'inter-latin-700-normal.ttf');
 if (!fs.existsSync(inter400)) {
-  console.error('Missing', inter400, '— copy from public/fonts/');
+  console.error('Missing', inter400);
+  process.exit(1);
+}
+if (!fs.existsSync(inter700)) {
+  console.error('Missing', inter700);
   process.exit(1);
 }
 
