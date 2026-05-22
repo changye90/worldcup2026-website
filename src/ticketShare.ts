@@ -1,4 +1,6 @@
 import type { Translations } from './i18n';
+import { primaryMatchFlagsForSellPost } from './sellMatchFlags';
+import { resolveTicketPostFlag } from './teamFlags';
 import type { TicketWallPost } from './ticketPosts';
 
 const TICKET_PARAM = 'ticket';
@@ -32,7 +34,11 @@ export function ticketShareTitle(post: TicketWallPost, tr: Translations): string
 
 export function ticketShareText(post: TicketWallPost, tr: Translations): string {
   const verb = post.kind === 'buy' ? tr.ticketWallSeekingVerb : tr.ticketWallHasVerb;
-  return `${post.flag} ${post.username} ${verb} ${post.summary}`;
+  const flag = resolveTicketPostFlag(
+    post,
+    post.kind === 'sell' ? primaryMatchFlagsForSellPost(post) : null,
+  );
+  return `${flag} ${post.username} ${verb} ${post.summary}`;
 }
 
 export async function shareTicketPost(post: TicketWallPost, tr: Translations): Promise<'shared' | 'copied'> {

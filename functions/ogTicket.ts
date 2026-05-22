@@ -1,3 +1,6 @@
+import { primaryMatchFlagsFromRow } from './matchFlagsOg';
+import { resolveTicketPostFlag } from './teamFlags';
+
 export interface TicketOgRow {
   id: string;
   kind: 'buy' | 'sell';
@@ -29,7 +32,7 @@ export function ogTitleForPost(row: TicketOgRow): string {
 }
 
 export function ogDescriptionForPost(row: TicketOgRow): string {
-  const flag = row.flag?.trim() || '🏳️';
+  const flag = resolveTicketPostFlag(row, primaryMatchFlagsFromRow(row));
   const user = row.username?.trim() || 'Fan';
   const detail = (row.detail || row.summary || '').trim().replace(/\s+/g, ' ');
   const verb = row.kind === 'buy' ? 'is looking for' : 'has tickets for';
@@ -83,8 +86,11 @@ export function buildOgHtml(opts: {
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${description}" />
   <meta property="og:image" content="${imageUrl}" />
+  <meta property="og:image:secure_url" content="${imageUrl}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:alt" content="${title}" />
   <meta property="og:site_name" content="OKcopa" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${title}" />

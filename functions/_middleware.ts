@@ -5,6 +5,7 @@ import {
   ogDescriptionForPost,
   ogTitleForPost,
 } from './ogTicket';
+import { resolveSupabaseEnv } from './supabaseEnv';
 
 interface Env {
   SUPABASE_URL?: string;
@@ -30,14 +31,13 @@ export const onRequest: PagesFunction<Env> = async context => {
   const imageUrl = `${origin}/og/ticket?id=${encodeURIComponent(ticketId)}`;
   const redirectUrl = pageUrl;
 
-  const supabaseUrl = context.env.SUPABASE_URL;
-  const anonKey = context.env.SUPABASE_ANON_KEY;
+  const supabase = resolveSupabaseEnv(context.env);
 
   let title = 'OKcopa · World Cup 2026 Tickets';
   let description = 'Fan ticket listings for FIFA World Cup 2026 — buy and sell on OKcopa.';
 
-  if (supabaseUrl && anonKey) {
-    const row = await fetchTicketRow(ticketId, supabaseUrl, anonKey);
+  if (supabase) {
+    const row = await fetchTicketRow(ticketId, supabase.url, supabase.key);
     if (row) {
       title = ogTitleForPost(row);
       description = ogDescriptionForPost(row);

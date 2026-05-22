@@ -30,6 +30,8 @@ Pages → 项目 → **Settings → Environment variables**（Production）添�
 | `SUPABASE_ANON_KEY` | 与 `VITE_SUPABASE_ANON_KEY` 相同 |
 | `SITE_ORIGIN` | 可选，`https://okcopa.com` |
 
+缺 `SUPABASE_*` 时 WhatsApp 链接标题会是通用文案；缺 `public/fonts` 时预览图可能**全黑**（已内置 Inter，需随 `dist` 一起部署）。详见 [docs/whatsapp-link-preview.md](./whatsapp-link-preview.md)。
+
 票务分享预览图由 **`/og/ticket?id=帖子ID`** 动态生成（卡片对阵样式），无需手传每张图。改赛程后执行 `npm run export:og-matches`。详见 [docs/whatsapp-link-preview.md](./whatsapp-link-preview.md)。
 
 Supabase 表 `ticket_wall_posts` 需已建表，且 RLS 允许 `anon` 的 `select` / `insert` / `update`。完整 SQL 见 [docs/supabase-ticket-wall.sql](./supabase-ticket-wall.sql)。

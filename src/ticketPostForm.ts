@@ -2,6 +2,8 @@ import type { Match } from './matchTypes';
 import type { Lang, Translations } from './i18n';
 import type { TicketWallPost } from './ticketPosts';
 import { defaultPostMeta } from './ticketPosts';
+import { primaryMatchFlagsForSellPost } from './sellMatchFlags';
+import { resolveTicketPostFlag } from './teamFlags';
 
 export interface TicketSellPayload {
   matches: string[];
@@ -93,7 +95,7 @@ export function createWallPostFromSell(
 ): TicketWallPost {
   const defaults = defaultPostMeta(lang);
   const summary = buildSellSummary(payload);
-  return {
+  const draft: TicketWallPost = {
     id: `user-${Date.now()}`,
     kind: 'sell',
     flag: defaults.flag,
@@ -103,6 +105,10 @@ export function createWallPostFromSell(
     createdAt: Date.now(),
     isUser: true,
     payload,
+  };
+  return {
+    ...draft,
+    flag: resolveTicketPostFlag(draft, primaryMatchFlagsForSellPost(draft)),
   };
 }
 

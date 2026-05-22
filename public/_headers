@@ -5,6 +5,10 @@
 /assets/*.css
   Content-Type: text/css; charset=utf-8
 
+/fonts/*.ttf
+  Content-Type: font/ttf
+  Cache-Control: public, max-age=31536000, immutable
+
 /assets/*.mjs
   Content-Type: application/javascript; charset=utf-8
 
@@ -16,3 +20,7 @@
 
 /*.css
   Content-Type: text/css; charset=utf-8
+
+/fonts/*.ttf
+  Content-Type: font/ttf
+  Cache-Control: public, max-age=31536000, immutable

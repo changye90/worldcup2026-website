@@ -1,0 +1,98 @@
+#!/usr/bin/env node
+/** Writes functions/data/team-flags.json from parse-wc2026 FLAGS + host countries. */
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const out = path.join(root, 'functions/data/team-flags.json');
+
+const teams = {
+  Mexico: '🇲🇽',
+  'South Africa': '🇿🇦',
+  'South Korea': '🇰🇷',
+  'Czech Republic': '🇨🇿',
+  Canada: '🇨🇦',
+  'Bosnia & Herzegovina': '🇧🇦',
+  Qatar: '🇶🇦',
+  Switzerland: '🇨🇭',
+  Brazil: '🇧🇷',
+  Morocco: '🇲🇦',
+  Haiti: '🇭🇹',
+  Scotland: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+  USA: '🇺🇸',
+  Paraguay: '🇵🇾',
+  Australia: '🇦🇺',
+  Turkey: '🇹🇷',
+  Germany: '🇩🇪',
+  Curaçao: '🇨🇼',
+  'Ivory Coast': '🇨🇮',
+  Ecuador: '🇪🇨',
+  Netherlands: '🇳🇱',
+  Japan: '🇯🇵',
+  Sweden: '🇸🇪',
+  Tunisia: '🇹🇳',
+  Belgium: '🇧🇪',
+  Egypt: '🇪🇬',
+  Iran: '🇮🇷',
+  'New Zealand': '🇳🇿',
+  Spain: '🇪🇸',
+  'Cape Verde': '🇨🇻',
+  'Saudi Arabia': '🇸🇦',
+  Uruguay: '🇺🇾',
+  France: '🇫🇷',
+  Senegal: '🇸🇳',
+  Iraq: '🇮🇶',
+  Norway: '🇳🇴',
+  Argentina: '🇦🇷',
+  Algeria: '🇩🇿',
+  Austria: '🇦🇹',
+  Jordan: '🇯🇴',
+  Portugal: '🇵🇹',
+  'DR Congo': '🇨🇩',
+  Uzbekistan: '🇺🇿',
+  Colombia: '🇨🇴',
+  England: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  Croatia: '🇭🇷',
+  Ghana: '🇬🇭',
+  Panama: '🇵🇦',
+};
+
+const countries = {
+  mexico: '🇲🇽',
+  méxico: '🇲🇽',
+  墨西哥: '🇲🇽',
+  usa: '🇺🇸',
+  'united states': '🇺🇸',
+  美国: '🇺🇸',
+  美: '🇺🇸',
+  canada: '🇨🇦',
+  加拿大: '🇨🇦',
+  brazil: '🇧🇷',
+  巴西: '🇧🇷',
+  argentina: '🇦🇷',
+  阿根廷: '🇦🇷',
+  england: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  英格兰: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+  france: '🇫🇷',
+  法国: '🇫🇷',
+  germany: '🇩🇪',
+  德国: '🇩🇪',
+  spain: '🇪🇸',
+  西班牙: '🇪🇸',
+  portugal: '🇵🇹',
+  netherlands: '🇳🇱',
+  belgium: '🇧🇪',
+  比利时: '🇧🇪',
+  'new zealand': '🇳🇿',
+  新西兰: '🇳🇿',
+  colombia: '🇨🇴',
+  japan: '🇯🇵',
+  日本: '🇯🇵',
+  'south korea': '🇰🇷',
+  korea: '🇰🇷',
+};
+
+fs.mkdirSync(path.dirname(out), { recursive: true });
+fs.writeFileSync(out, JSON.stringify({ teams, countries }, null, 2) + '\n');
+console.log('Wrote', out);

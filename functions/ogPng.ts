@@ -1,6 +1,7 @@
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
 // @ts-expect-error Cloudflare Pages bundles .wasm as a module
 import wasmModule from '@resvg/resvg-wasm/index_bg.wasm';
+import { OG_FONT_BUFFERS } from './ogFontBuffers';
 
 let wasmReady: Promise<void> | null = null;
 
@@ -11,12 +12,14 @@ function ensureWasm(): Promise<void> {
   return wasmReady;
 }
 
-export async function svgToPng(svg: string): Promise<Uint8Array> {
+export async function svgToPng(svg: string, _origin?: string): Promise<Uint8Array> {
   await ensureWasm();
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'width', value: 1200 },
     font: {
-      loadSystemFonts: true,
+      fontBuffers: OG_FONT_BUFFERS,
+      defaultFontFamily: 'Inter',
+      sansSerifFamily: 'Inter',
     },
   });
   const rendered = resvg.render();

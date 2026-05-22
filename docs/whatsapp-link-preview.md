@@ -75,11 +75,21 @@ npx wrangler pages dev dist
 
 在 `.dev.vars` 里写 `SUPABASE_URL`、`SUPABASE_ANON_KEY`，再访问 `/og/ticket?id=...`。
 
+## 字体（避免 WhatsApp 黑图）
+
+边缘 `resvg` **没有系统字体**，文字会画不出来，预览图只剩黑底+色条。
+
+本仓库在 **`public/fonts/`** 放了 Inter TTF，`ogPng.ts` 会从同域拉取后再生成 PNG。部署后确认能打开：
+
+`https://okcopa.com/fonts/inter-latin-400-normal.ttf`
+
 ## 常见问题
 
 | 现象 | 处理 |
 |------|------|
-| WhatsApp 无图 / 旧图 | Debugger 强制 Scrape；确认 `/og/ticket?id=` 在浏览器能打开 PNG |
+| WhatsApp **缩略图全黑** / 只有一条色带 | 多为未加载字体（见上）；部署含 `public/fonts` 的新版后 Debugger **Scrape Again** |
+| WhatsApp 无图 / 旧图 | Debugger 强制 Scrape；确认 `/og/ticket?id=` 在浏览器能打开 PNG 且**能看见文字** |
+| 标题/描述是通用站名、不是帖子 | Production 未配 **`SUPABASE_URL` + `SUPABASE_ANON_KEY`**（与 `VITE_` 相同，Functions 不读 `VITE_`） |
 | 图里没有对阵 | 帖子 `payload.matches` 是否含 `Match N`；是否跑过 `export:og-matches` |
-| Functions 部署失败 | 看 CF 日志是否 wasm 相关；可暂时回退为静态 `public/og-okcopa.png` |
+| Functions 部署失败 | 看 CF 日志是否 wasm / 字体拉取失败 |
 | 描述英文 | 改 `functions/ogCardContent.ts` / `ogTicket.ts` 文案 |

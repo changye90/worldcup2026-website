@@ -1,4 +1,6 @@
 import type { TicketBuyPayload, TicketSellPayload } from './ticketPostForm';
+import { primaryMatchFlagsForSellPost } from './sellMatchFlags';
+import { resolveTicketPostFlag } from './teamFlags';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 export type TicketWallKind = 'buy' | 'sell';
@@ -38,20 +40,31 @@ function getSupabaseClient(): SupabaseClient | null {
 /** Demo/seed posts — empty until real listings are imported. */
 export const seedTicketWallPosts: TicketWallPost[] = [];
 
+/** Default wall order: newest first (by `createdAt` ms). */
+export function sortTicketPostsNewestFirst(posts: TicketWallPost[]): TicketWallPost[] {
+  return [...posts].sort((a, b) => {
+    const dt = b.createdAt - a.createdAt;
+    if (dt !== 0) return dt;
+    return b.id.localeCompare(a.id);
+  });
+}
+
 export function loadUserTicketPosts(): TicketWallPost[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as TicketWallPost[];
-    return Array.isArray(parsed) ? parsed.filter(p => p.kind === 'buy' || p.kind === 'sell') : [];
+    const list = Array.isArray(parsed) ? parsed.filter(p => p.kind === 'buy' || p.kind === 'sell') : [];
+    return sortTicketPostsNewestFirst(list);
   } catch {
     return [];
   }
 }
 
 export function persistUserTicketPost(post: TicketWallPost): void {
-  const existing = loadUserTicketPosts();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([post, ...existing].slice(0, 40)));
+  const existing = loadUserTicketPosts().filter(p => p.id !== post.id);
+  const next = sortTicketPostsNewestFirst([{ ...post, isUser: true }, ...existing]).slice(0, 40);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 
 interface TicketWallDbRow {
@@ -66,19 +79,33 @@ interface TicketWallDbRow {
   payload?: TicketSellPayload | TicketBuyPayload | null;
 }
 
-function dbRowToPost(row: TicketWallDbRow, localIds: Set<string>): TicketWallPost {
-  const fromMs = typeof row.created_at_ms === 'number' ? row.created_at_ms : null;
+function resolveCreatedAtMs(row: TicketWallDbRow): number {
+  const fromMs = typeof row.created_at_ms === 'number' && row.created_at_ms > 0 ? row.created_at_ms : null;
   const fromIso = row.created_at ? Date.parse(row.created_at) : NaN;
-  return {
+  if (fromMs != null && Number.isFinite(fromIso)) return Math.max(fromMs, fromIso);
+  if (fromMs != null) return fromMs;
+  if (Number.isFinite(fromIso)) return fromIso;
+  return 0;
+}
+
+function dbRowToPost(row: TicketWallDbRow, localIds: Set<string>): TicketWallPost {
+  const base = {
     id: row.id,
     kind: row.kind,
     flag: row.flag || '🏳️',
     username: row.username || 'Fan',
     summary: row.summary || '',
     detail: row.detail || '',
-    createdAt: fromMs ?? (Number.isFinite(fromIso) ? fromIso : Date.now()),
+    createdAt: resolveCreatedAtMs(row),
     isUser: localIds.has(row.id),
     payload: row.payload ?? undefined,
+  };
+  return {
+    ...base,
+    flag: resolveTicketPostFlag(
+      base,
+      base.kind === 'sell' ? primaryMatchFlagsForSellPost(base) : null,
+    ),
   };
 }
 

@@ -127,11 +127,24 @@ function parseWhatsapp(raw) {
   return s.replace(/\s/g, '');
 }
 
+const TEAM_FLAGS_JSON = path.join(ROOT, 'functions/data/team-flags.json');
+const { teams: TEAM_FLAGS, countries: COUNTRY_FLAGS } = JSON.parse(
+  fs.readFileSync(TEAM_FLAGS_JSON, 'utf8'),
+);
+
+function flagForTeam(name) {
+  const t = String(name).trim();
+  if (TEAM_FLAGS[t]) return TEAM_FLAGS[t];
+  if (/^\d|^[123][A-L]\b|^W\d+|^L\d+/i.test(t)) return '⚽';
+  return '🏳️';
+}
+
 function countryToFlag(country) {
-  const c = String(country).trim().toLowerCase();
-  if (c.includes('mex') || c.includes('墨西哥')) return '🇲🇽';
-  if (c.includes('usa') || c.includes('美国') || c.includes('美')) return '🇺🇸';
-  if (c.includes('can') || c.includes('加拿大')) return '🇨🇦';
+  const key = String(country).trim().toLowerCase();
+  if (!key) return '🏳️';
+  for (const [k, flag] of Object.entries(COUNTRY_FLAGS)) {
+    if (key.includes(k)) return flag;
+  }
   return '🏳️';
 }
 
@@ -251,13 +264,14 @@ function rowToPost(fields, index, matches) {
     return null;
   }
 
-  const flag = countryToFlag(country);
   const username = `Seller${1000 + index}`;
   const seatDetails = extractSeatDetails(description, category);
   const id = `import-${Date.now()}-${index}`;
   const createdAt = Date.now() - index * 60_000;
 
   if (kind === 'buy') {
+    const bm = matchRaw ? findMatch(matches, matchRaw) : null;
+    const flag = bm ? `${bm.flag1}${bm.flag2}` : countryToFlag(country);
     const targetMatch = matchRaw || description.slice(0, 140);
     const payload = {
       targetMatch,
@@ -280,6 +294,9 @@ function rowToPost(fields, index, matches) {
   }
 
   const m = matchRaw ? findMatch(matches, matchRaw) : null;
+  const flag = m
+    ? `${m.flag1}${m.flag2}`
+    : countryToFlag(country);
   const matchLabel = m ? formatMatchOption(m) : matchRaw || 'Custom match';
   const payload = {
     matches: [matchLabel],
