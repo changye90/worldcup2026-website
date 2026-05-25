@@ -10,6 +10,7 @@ export function getTicketIdFromUrl(url: URL = new URL(window.location.href)): st
 
 export function buildTicketShareUrl(post: TicketWallPost, baseUrl?: string): string {
   const url = new URL(baseUrl ?? window.location.href);
+  url.pathname = '/tickets';
   url.search = '';
   url.hash = '';
   url.searchParams.set(TICKET_PARAM, post.id);

@@ -29,7 +29,7 @@ import {
   formatMatchKickoffDisplay,
   primaryScheduleMatchForSellPost,
   resolvedSellMatches,
-  sellPostPassesCityFilter,
+  filterSellPosts,
   sellFixedPriceDisplay,
   sellHasFixedPrice,
   sellNotesExcludingStructured,
@@ -457,18 +457,20 @@ export function TicketPostGrid({
   tr,
   lang,
   activeCity = null,
+  activeMatchNumber = null,
   highlightPostId = null,
 }: {
   posts: TicketWallPost[];
   tr: Translations;
   lang: Lang;
   activeCity?: string | null;
+  activeMatchNumber?: number | null;
   highlightPostId?: string | null;
 }) {
-  const visible = useMemo(() => {
-    if (!activeCity) return posts;
-    return posts.filter(p => sellPostPassesCityFilter(p, activeCity));
-  }, [posts, activeCity]);
+  const visible = useMemo(
+    () => filterSellPosts(posts, { activeCity, activeMatchNumber }),
+    [posts, activeCity, activeMatchNumber],
+  );
 
   if (visible.length === 0) {
     return (

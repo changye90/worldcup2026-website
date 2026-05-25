@@ -71,6 +71,26 @@ export function sellPostPassesCityFilter(post: TicketWallPost, activeCity: strin
   return listingBelongsToHostCity(m.city, activeCity);
 }
 
+/** When a schedule match is selected, only posts that list that match number appear. */
+export function sellPostPassesMatchFilter(post: TicketWallPost, matchNumber: number | null): boolean {
+  if (post.kind !== 'sell') return true;
+  if (matchNumber == null) return true;
+  return extractMatchNumbersFromSellPost(post).includes(matchNumber);
+}
+
+export function filterSellPosts(
+  posts: TicketWallPost[],
+  opts: { activeCity: string | null; activeMatchNumber: number | null },
+): TicketWallPost[] {
+  if (opts.activeMatchNumber != null) {
+    return posts.filter(p => sellPostPassesMatchFilter(p, opts.activeMatchNumber));
+  }
+  if (opts.activeCity) {
+    return posts.filter(p => sellPostPassesCityFilter(p, opts.activeCity));
+  }
+  return posts;
+}
+
 export function formatMatchKickoffDisplay(m: Match, lang: Lang): string {
   const [hh, mm] = m.kickoffTime.split(':').map(Number);
   const iso = `${m.date}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00`;
@@ -118,7 +138,7 @@ export function sellStructuredDedupeTokens(
       schedule.awayTeam,
       schedule.city,
       schedule.stadium,
-      schedule.country ?? '',
+      hostCountryForCity(schedule.city) ?? '',
       `Match ${schedule.matchNumber}`,
     );
   }

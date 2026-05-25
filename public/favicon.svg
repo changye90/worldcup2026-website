@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="OKcopa">
+  <rect width="32" height="32" rx="8" fill="#14532d"/>
+  <circle cx="16" cy="16" r="11" fill="#fafafa"/>
+  <path
+    fill="#14532d"
+    d="M16 6.2 18.1 10.4h4.5l-3.6 2.6 1.4 4.4-4.3-3.1-4.3 3.1 1.4-4.4-3.6-2.6h4.5L16 6.2z"
+  />
+  <path
+    fill="#fbbf24"
+    d="M16 8.8 17.4 11.6h3.1l-2.5 1.8.9 2.9-2.9-2.1-2.9 2.1.9-2.9-2.5-1.8h3.1L16 8.8z"
+    opacity=".85"
+  />
+</svg>

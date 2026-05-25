@@ -74,7 +74,7 @@ export const t = {
     countdownEvent: 'June 11, 2026 · Opening Match',
     scheduleTitle: 'Match Schedule',
     noMatchesDay: 'No matches scheduled for this day.',
-    matchesLabel: (n: number) => `${n} match${n !== 1 ? 'es' : ''} — click a card below to filter listings by city`,
+    matchesLabel: (n: number) => `${n} match${n !== 1 ? 'es' : ''} — click a card below to show tickets for that match only`,
     matchCardBandGroup: 'Group stage',
     citiesTitle: 'Host Cities',
     citiesDesc:
@@ -250,6 +250,8 @@ export const t = {
     experience: (n: number) => `${n} years experience`,
     matchNumber: 'Match',
     listingsFilteredCity: (city: string) => city,
+    listingsFilteredMatch: (n: number, home: string, away: string) =>
+      `Match ${n} · ${home} vs ${away}`,
     listingsSuffix: 'Listings',
     footerDesc:
       'by ok.com — Tickets, car rental, hotels, and illustrative odds for the 2026 World Cup.',
@@ -291,7 +293,7 @@ export const t = {
     countdownEvent: '11 Jun 2026 · Partido Inaugural',
     scheduleTitle: 'Calendario de Partidos',
     noMatchesDay: 'No hay partidos programados para este día.',
-    matchesLabel: (n: number) => `${n} partido${n !== 1 ? 's' : ''} — toca una tarjeta abajo para filtrar por ciudad sede`,
+    matchesLabel: (n: number) => `${n} partido${n !== 1 ? 's' : ''} — toca una tarjeta abajo para ver solo boletos de ese partido`,
     matchCardBandGroup: 'Fase de grupos',
     citiesTitle: 'Ciudades Sede',
     citiesDesc:
@@ -467,6 +469,8 @@ export const t = {
     experience: (n: number) => `${n} años de experiencia`,
     matchNumber: 'Partido',
     listingsFilteredCity: (city: string) => city,
+    listingsFilteredMatch: (n: number, home: string, away: string) =>
+      `Partido ${n} · ${home} vs ${away}`,
     listingsSuffix: 'Anuncios',
     footerDesc:
       'por ok.com — Boletos, autos, hoteles y cuotas ilustrativas para el Mundial 2026.',
@@ -508,7 +512,7 @@ export const t = {
     countdownEvent: '11 Jun 2026 · Jogo de Abertura',
     scheduleTitle: 'Calendário de Jogos',
     noMatchesDay: 'Nenhum jogo programado para este dia.',
-    matchesLabel: (n: number) => `${n} jogo${n !== 1 ? 's' : ''} — toque num card abaixo para filtrar por cidade-sede`,
+    matchesLabel: (n: number) => `${n} jogo${n !== 1 ? 's' : ''} — toque num card abaixo para ver só ingressos daquele jogo`,
     matchCardBandGroup: 'Fase de grupos',
     citiesTitle: 'Cidades-Sede',
     citiesDesc:
@@ -684,6 +688,8 @@ export const t = {
     experience: (n: number) => `${n} anos de experiência`,
     matchNumber: 'Jogo',
     listingsFilteredCity: (city: string) => city,
+    listingsFilteredMatch: (n: number, home: string, away: string) =>
+      `Jogo ${n} · ${home} x ${away}`,
     listingsSuffix: 'Anúncios',
     footerDesc:
       'por ok.com — Ingressos, carros, hotéis e odds ilustrativas para a Copa 2026.',

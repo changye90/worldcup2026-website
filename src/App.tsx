@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   MapPin, ChevronLeft, ChevronRight, Bed, Car, Building2,
   Zap, Calendar, Phone, Clock,
@@ -24,6 +24,10 @@ import {
   TicketPostGrid,
   TicketSafetyDisclaimer,
 } from './TicketMarketplace';
+import { TicketSeoGuides } from './TicketSeoGuides.tsx';
+import { useAppRouting } from './useAppRouting';
+import { readUrlAppState } from './seoRouting';
+import { findMatchByNumber, filterSellPosts } from './sellPostResolve';
 import type { TicketWallKind } from './ticketPosts';
 
 /** Hero background — place `hero.png` in `public/`. */
@@ -122,18 +126,45 @@ function formatSchedulePill(iso: string) {
 
 export default function App() {
   const [lang, setLang] = useState<Lang>('en');
-  const [activeCity, setActiveCity] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('tickets');
+  const initialUrl = readUrlAppState();
+  const initialMatchRow =
+    initialUrl.match != null ? findMatchByNumber(initialUrl.match) : undefined;
+  const [activeCity, setActiveCity] = useState<string | null>(
+    initialUrl.city ?? initialMatchRow?.city ?? null,
+  );
+  const [activeMatchNumber, setActiveMatchNumber] = useState<number | null>(
+    initialMatchRow ? initialUrl.match : null,
+  );
+  const [activeTab, setActiveTab] = useState<Tab>(initialUrl.tab);
   const [postModal, setPostModal] = useState<TicketWallKind | null>(null);
+  const listingsRef = useRef<HTMLElement>(null);
+  const clearListingFilters = () => {
+    setActiveCity(null);
+    setActiveMatchNumber(null);
+  };
+  const { navigateToTab } = useAppRouting(
+    lang,
+    activeTab,
+    activeCity,
+    activeMatchNumber,
+    setActiveTab,
+    setActiveCity,
+    setActiveMatchNumber,
+  );
   const { handlePost, sellPosts, highlightPostId } = useTicketWall(lang, {
-    onOpenSharePost: post => {
-      setActiveTab('tickets');
-      setActiveCity(null);
+    onOpenSharePost: () => {
+      navigateToTab('tickets');
+      clearListingFilters();
       window.setTimeout(() => {
         listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 80);
     },
   });
+  const activeMatch = activeMatchNumber != null ? findMatchByNumber(activeMatchNumber) : undefined;
+  const filteredSellPosts = useMemo(
+    () => filterSellPosts(sellPosts, { activeCity, activeMatchNumber }),
+    [sellPosts, activeCity, activeMatchNumber],
+  );
   const [scheduleExpandedDate, setScheduleExpandedDate] = useState<string | null>(() => {
     const dates = [...new Set(matches.map(m => m.date))].sort();
     return dates[0] ?? null;
@@ -145,7 +176,6 @@ export default function App() {
   const scheduleRef = useRef<HTMLDivElement>(null);
   const hostCitiesRef = useRef<HTMLDivElement>(null);
   const scheduleSectionRef = useRef<HTMLElement>(null);
-  const listingsRef = useRef<HTMLElement>(null);
   const tr = t[lang];
 
   const pageViewBoot = useRef(false);
@@ -164,7 +194,7 @@ export default function App() {
   useEffect(() => {
     setCarsExpanded(false);
     setHotelsExpanded(false);
-  }, [activeCity]);
+  }, [activeCity, activeMatchNumber]);
 
   // Close lang dropdown on outside click
   useEffect(() => {
@@ -210,16 +240,19 @@ export default function App() {
     !hotelsExpanded &&
     filteredHotels.length > CAR_GRID_PREVIEW;
 
-  const filterByCityFromMatch = (city: string, match?: Match) => {
-    if (match) {
-      track(AnalyticsEvent.ScheduleMatch, {
-        match_id: match.id,
-        match_number: match.matchNumber,
-        city: match.city,
-        date: match.date,
-      });
+  const filterByScheduleMatch = (match: Match) => {
+    track(AnalyticsEvent.ScheduleMatch, {
+      match_id: match.id,
+      match_number: match.matchNumber,
+      city: match.city,
+      date: match.date,
+    });
+    if (activeMatchNumber === match.matchNumber) {
+      clearListingFilters();
+    } else {
+      setActiveMatchNumber(match.matchNumber);
+      setActiveCity(match.city);
     }
-    setActiveCity(prev => (prev === city ? null : city));
     setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
 
@@ -310,8 +343,8 @@ export default function App() {
 
       {/* ── HERO ──────────────────────────────────────────────────────── */}
       <section
-        className="relative flex flex-col overflow-hidden bg-pitch-900 py-4 sm:py-6"
-        style={{ minHeight: 'min(56vh, 520px)' }}
+        className="relative flex flex-col overflow-hidden bg-pitch-900 py-3 sm:py-4"
+        style={{ minHeight: 'min(44vh, 420px)' }}
       >
         <div className="pointer-events-none absolute inset-0">
           <img
@@ -325,8 +358,8 @@ export default function App() {
           <div className="absolute inset-0 bg-gradient-to-b from-pitch-900/10 via-transparent to-pitch-900" />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-7xl flex-1 px-4 pb-4 pt-20 sm:px-6 sm:pb-6">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
+        <div className="relative z-10 mx-auto max-w-7xl flex-1 px-4 pb-2 pt-20 sm:px-6 sm:pb-3">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
             <div className="min-w-0 flex-1">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-grass-500/20 bg-grass-500/10 px-3 py-1 text-xs text-grass-400">
                 <Zap className="h-3 w-3" />
@@ -410,7 +443,7 @@ export default function App() {
                     type="button"
                     onClick={() => {
                       track(AnalyticsEvent.HeroTab, { tab });
-                      setActiveTab(tab);
+                      navigateToTab(tab);
                       setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
                     }}
                     className={cls}
@@ -429,7 +462,7 @@ export default function App() {
       <section
         id="schedule"
         ref={scheduleSectionRef}
-        className="scroll-mt-[72px] border-y border-grass-700/20 bg-pitch-800/60 py-8 sm:py-10"
+        className="scroll-mt-[72px] border-y border-grass-700/20 bg-pitch-800/60 py-5 sm:py-7"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
@@ -549,12 +582,12 @@ export default function App() {
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => filterByCityFromMatch(m.city, m)}
+                        onClick={() => filterByScheduleMatch(m)}
                         className={`rounded-xl border bg-pitch-950/90 p-3 text-left transition hover:bg-pitch-900 sm:p-4 ${
                           isG
                             ? 'border-cyan-600/40 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.06)]'
                             : 'border-amber-600/45 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.07)]'
-                        } ${activeCity === m.city ? 'ring-2 ring-gold-400/80' : ''}`}
+                        } ${activeMatchNumber === m.matchNumber ? 'ring-2 ring-gold-400/80' : ''}`}
                       >
                         <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1 sm:gap-1.5">
                           <span
@@ -646,10 +679,10 @@ export default function App() {
                 ? 'Deslize horizontalmente para ver mais cidades.'
                 : 'Swipe left/right to view more cities.'}
             </p>
-            {activeCity && (
+            {(activeCity || activeMatchNumber != null) && (
               <button
                 type="button"
-                onClick={() => setActiveCity(null)}
+                onClick={clearListingFilters}
                 className="text-sm text-grass-400 hover:text-grass-300 border border-grass-600/40 hover:border-grass-500 rounded-lg px-3 py-1.5 transition-colors"
               >
                 {tr.clearFilter}
@@ -662,13 +695,15 @@ export default function App() {
         <div ref={hostCitiesRef} className="overflow-x-auto pb-2 scroll-smooth pl-4 pr-4 sm:pl-6 sm:pr-6 [-webkit-overflow-scrolling:touch]">
           <div className="grid min-w-max grid-flow-col grid-rows-2 auto-cols-[7.5rem] gap-2 sm:auto-cols-[8.5rem] sm:gap-3">
             {cities.map(city => {
-              const isActive = activeCity === city.name;
+              const isActive =
+                activeMatchNumber == null && activeCity === city.name;
               const isHighDemand = highDemandCities.has(city.name);
               return (
                 <button
                   key={city.name}
                   type="button"
                   onClick={() => {
+                    setActiveMatchNumber(null);
                     setActiveCity(isActive ? null : city.name);
                     setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
                   }}
@@ -707,18 +742,31 @@ export default function App() {
       <section ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
         <div className="flex items-center justify-between gap-3 mb-6">
           <h3 className="text-2xl font-bold text-white">
-            {activeCity ? (
+            {activeMatch && activeMatchNumber != null ? (
+              <>
+                <span className="text-grass-400">
+                  {tr.listingsFilteredMatch(
+                    activeMatchNumber,
+                    activeMatch.homeTeam,
+                    activeMatch.awayTeam,
+                  )}
+                </span>
+                <span className="text-gray-400 text-base font-normal ml-2">{tr.listingsSuffix}</span>
+              </>
+            ) : activeCity ? (
               <>
                 <span className="text-grass-400">{tr.listingsFilteredCity(activeCity)}</span>
                 <span className="text-gray-400 text-base font-normal ml-2">{tr.listingsSuffix}</span>
               </>
-            ) : tr.listingsTitle}
+            ) : (
+              tr.listingsTitle
+            )}
           </h3>
           <div className="flex items-center gap-2 shrink-0">
-            {activeCity && (
+            {(activeCity || activeMatchNumber != null) && (
               <button
                 type="button"
-                onClick={() => setActiveCity(null)}
+                onClick={clearListingFilters}
                 className="text-sm text-grass-400 hover:text-grass-300 border border-grass-600/40 hover:border-grass-500 rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap"
               >
                 {tr.clearFilter}
@@ -754,7 +802,7 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   track(AnalyticsEvent.ListingsTab, { tab: tab.key });
-                  setActiveTab(tab.key);
+                  navigateToTab(tab.key);
                 }}
                 className={`flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-0 ${
                   activeTab === tab.key ? tab.activeCls : 'text-gray-400 hover:text-gray-200'
@@ -784,7 +832,7 @@ export default function App() {
                 {tr.tabTicketSell}
               </h4>
               <span className="rounded-full border border-gold-500/30 bg-gold-500/10 px-2.5 py-0.5 text-xs font-mono tabular-nums text-gold-300">
-                {sellPosts.length}
+                {filteredSellPosts.length}
               </span>
             </div>
             <TicketPostGrid
@@ -792,6 +840,7 @@ export default function App() {
               tr={tr}
               lang={lang}
               activeCity={activeCity}
+              activeMatchNumber={activeMatchNumber}
               highlightPostId={highlightPostId}
             />
           </div>
@@ -861,10 +910,12 @@ export default function App() {
           onClose={() => setPostModal(null)}
           onSubmit={post => {
             handlePost(post);
-            setActiveTab('tickets');
+            navigateToTab('tickets');
           }}
         />
       ) : null}
+
+      <TicketSeoGuides lang={lang} />
 
       {/* ── FOOTER ────────────────────────────────────────────────────── */}
       <footer className="bg-pitch-800 border-t border-grass-700/20 py-8">

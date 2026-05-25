@@ -17,6 +17,16 @@ export function isLinkPreviewBot(userAgent: string): boolean {
   );
 }
 
+/** Social preview + search crawlers that benefit from server-rendered meta HTML. */
+export function isSeoCrawler(userAgent: string): boolean {
+  return (
+    isLinkPreviewBot(userAgent) ||
+    /googlebot|google-inspectiontool|bingbot|duckduckbot|baiduspider|yandexbot|slurp|applebot/i.test(
+      userAgent,
+    )
+  );
+}
+
 export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -68,18 +78,22 @@ export function buildOgHtml(opts: {
   pageUrl: string;
   imageUrl: string;
   redirectUrl: string;
+  canonicalUrl?: string;
 }): string {
   const title = escapeHtml(opts.title);
   const description = escapeHtml(opts.description);
   const pageUrl = escapeHtml(opts.pageUrl);
   const imageUrl = escapeHtml(opts.imageUrl);
   const redirectUrl = escapeHtml(opts.redirectUrl);
+  const canonical = escapeHtml(opts.canonicalUrl ?? opts.pageUrl);
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <title>${title}</title>
+  <meta name="description" content="${description}" />
+  <link rel="canonical" href="${canonical}" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="${pageUrl}" />
