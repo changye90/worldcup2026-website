@@ -18,6 +18,7 @@ if (fs.existsSync(embedVisuals)) {
 
 const fontsDir = path.join(root, 'public/fonts');
 const fallbackPng = path.join(root, 'public/og-ticket-fallback.png');
+const brandPng = path.join(root, 'public/og-okcopa.png');
 
 function b64(file) {
   return fs.readFileSync(file).toString('base64');
@@ -93,4 +94,13 @@ export function getOgFallbackPng(): Uint8Array {
 `;
 
 fs.writeFileSync(path.join(root, 'functions/ogFallbackPng.ts'), fallbackTs);
+
+if (!fs.existsSync(brandPng)) {
+  try {
+    execSync('node scripts/test-og-brand-render.mjs', { stdio: 'inherit', cwd: root });
+  } catch (e) {
+    console.warn('Could not render og-okcopa.png:', e.message);
+  }
+}
+
 console.log('Wrote functions/ogFontBuffers.ts + functions/ogFallbackPng.ts');

@@ -14,7 +14,8 @@ WhatsApp 展示链接卡片时**不运行** React，只：
 |------|------|
 | 分享链接 | `?ticket=帖子ID`（前端 Share 按钮已生成） |
 | 爬虫 HTML | `functions/_middleware.ts` 返回带 OG 的静态 HTML |
-| **预览图** | `functions/og/ticket.ts` 按帖子数据**画一张与卡片同结构的 PNG**（1200×630） |
+| **预览图（首页）** | `functions/og/brand.ts` — Hero 底图 + 品牌文案 + WhatsApp CTA（1200×630） |
+| **预览图（帖子）** | `functions/og/ticket.ts` 按帖子数据**画一张与卡片同结构的 PNG**（1200×630） |
 | 数据来源 | Supabase `ticket_wall_posts` + `functions/data/matches-og.json`（赛程） |
 
 预览图大致包含：对阵 + 国家/城市/球场 + 开球时间 + 票数/类别 + 价格，风格与站内卖票卡片一致。
@@ -22,8 +23,11 @@ WhatsApp 展示链接卡片时**不运行** React，只：
 `og:image` 指向：
 
 ```text
-https://你的域名/og/ticket?id=帖子ID
+https://你的域名/og/brand              # 首页 / 品牌
+https://你的域名/og/ticket?id=帖子ID   # 票务分享
 ```
+
+本地重生成品牌静图：`npm run render:og-brand` → `public/og-okcopa.png`
 
 ## 部署 checklist
 

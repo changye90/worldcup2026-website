@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node scripts/free-dev-port.mjs && vite",
     "build": "vite build",
-    "embed:og-assets": "node scripts/embed-og-visuals.mjs && node scripts/test-og-render.mjs && node scripts/embed-og-assets.mjs",
+    "embed:og-assets": "node scripts/embed-og-visuals.mjs && node scripts/test-og-render.mjs && node scripts/test-og-brand-render.mjs && node scripts/embed-og-assets.mjs",
+    "render:og-brand": "node scripts/test-og-brand-render.mjs",
     "deploy:build": "npm run build && echo '\\n[okcopa] dist/ ready — SFTP upload (context ./dist) or see docs/DEPLOY.md'",
     "pack:html": "npm run build && node scripts/pack-html-zip.mjs",
     "preview:fresh": "vite build && vite preview --host 127.0.0.1 --port 4174 --strictPort",

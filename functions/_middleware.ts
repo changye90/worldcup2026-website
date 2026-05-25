@@ -22,15 +22,32 @@ export const onRequest: PagesFunction<Env> = async context => {
 
   const url = new URL(context.request.url);
   const ticketId = url.searchParams.get('ticket')?.trim();
-  if (!ticketId) {
-    return context.next();
-  }
-
   const origin = (context.env.SITE_ORIGIN || url.origin).replace(/\/$/, '');
   const pageUrl = `${origin}${url.pathname}${url.search}`;
-  const imageUrl = `${origin}/og/ticket?id=${encodeURIComponent(ticketId)}`;
   const redirectUrl = pageUrl;
 
+  if (!ticketId) {
+    const path = url.pathname.replace(/\/$/, '') || '/';
+    if (path !== '/' && path !== '/index.html') {
+      return context.next();
+    }
+    const html = buildOgHtml({
+      title: 'OKcopa · Fan-to-Fan World Cup 2026 Tickets',
+      description:
+        '100% free marketplace — direct WhatsApp chat with sellers. Skip the 30% resale fees.',
+      pageUrl,
+      imageUrl: `${origin}/og/brand`,
+      redirectUrl,
+    });
+    return new Response(html, {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'public, max-age=300',
+      },
+    });
+  }
+
+  const imageUrl = `${origin}/og/ticket?id=${encodeURIComponent(ticketId)}`;
   const supabase = resolveSupabaseEnv(context.env);
 
   let title = 'OKcopa · World Cup 2026 Tickets';
