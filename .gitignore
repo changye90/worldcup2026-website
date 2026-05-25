@@ -5,6 +5,7 @@ dist
 !.env.example
 .okcopa-url
 .okcopa-preview.pid
+.og-embed-tmp
 .DS_Store
 .vscode/sftp.json
 html.zip

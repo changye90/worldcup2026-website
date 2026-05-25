@@ -1,10 +1,21 @@
 #!/usr/bin/env node
-/** Embed Inter TTF + fallback PNG for Cloudflare Functions (no HTTP fetch). */
+/** Embed hero/flags + Inter TTF + fallback PNG for Cloudflare Functions. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+const embedVisuals = path.join(root, 'scripts/embed-og-visuals.mjs');
+if (fs.existsSync(embedVisuals)) {
+  try {
+    execSync(`node "${embedVisuals}"`, { stdio: 'inherit', cwd: root });
+  } catch (e) {
+    console.warn('embed-og-visuals failed (flags/hero may be missing):', e.message);
+  }
+}
+
 const fontsDir = path.join(root, 'public/fonts');
 const fallbackPng = path.join(root, 'public/og-ticket-fallback.png');
 
@@ -49,7 +60,16 @@ fs.writeFileSync(path.join(root, 'functions/ogFontBuffers.ts'), fontBuffersTs);
 
 let pngB64 = '';
 if (fs.existsSync(fallbackPng)) {
-  pngB64 = b64(fallbackPng);
+  const size = fs.statSync(fallbackPng).size;
+  if (size > 200_000) {
+    console.warn(
+      'Skip embedding og-ticket-fallback.png in Worker (',
+      size,
+      'bytes) — /og/ticket falls back to redirecting to /og-ticket-fallback.png',
+    );
+  } else {
+    pngB64 = b64(fallbackPng);
+  }
 } else {
   console.warn('No', fallbackPng);
 }

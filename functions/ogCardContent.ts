@@ -16,7 +16,12 @@ export interface OgMatchSlim {
 
 export interface OgCardContent {
   badge: string;
-  headline: string;
+  /** Buy posts or fallback when no structured matchup. */
+  headline?: string;
+  homeTeam?: string;
+  awayTeam?: string;
+  flag1?: string;
+  flag2?: string;
   meta?: string;
   kickoff?: string;
   detail: string;
@@ -106,7 +111,10 @@ export function cardContentFromRow(row: TicketOgRow): OgCardContent {
     const meta = [primary.country, primary.city, primary.stadium].filter(Boolean).join(' · ');
     return {
       badge: 'TICKETS FOR SALE',
-      headline: `${primary.flag1} ${primary.homeTeam} vs ${primary.awayTeam} ${primary.flag2}`,
+      homeTeam: primary.homeTeam,
+      awayTeam: primary.awayTeam,
+      flag1: primary.flag1,
+      flag2: primary.flag2,
       meta,
       kickoff: formatKickoff(primary),
       detail: detailParts.join(' · '),

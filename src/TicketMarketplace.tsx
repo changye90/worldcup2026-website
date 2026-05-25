@@ -10,6 +10,7 @@ import {
   persistSharedTicketPost,
   persistUserTicketPost,
   type TicketWallPost,
+  sortTicketPostsNewestFirst,
 } from './ticketPosts';
 import type { TicketSellPayload } from './ticketPostForm';
 import { formatCategorySeatLine, getWhatsappHref } from './ticketPostForm';
@@ -173,7 +174,7 @@ function TicketSellPostCard({
       } ${highlighted ? 'ring-2 ring-grass-400 ring-offset-2 ring-offset-pitch-900' : ''}`}
     >
       <div className="flex min-h-0 flex-1 flex-col p-3.5 sm:p-4">
-        <div className="mb-2.5 flex shrink-0 items-start justify-between gap-3">
+        <div className="mb-2.5 shrink-0 space-y-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full border border-gold-500/30 bg-gold-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gold-300/90">
               <Tag className="h-3 w-3 shrink-0" />
@@ -186,18 +187,19 @@ function TicketSellPostCard({
             ) : null}
             <TicketShareButton post={post} tr={tr} />
           </div>
-          <div className="min-h-[2.75rem] shrink-0 text-right">
-            <p className="text-lg font-bold leading-tight tabular-nums text-gold-300">{price || '—'}</p>
-            <p className="mt-0.5 min-h-[1rem] text-[10px] text-gray-500">
-              {qty != null ? (
-                <>
-                  {tr.ticketQty(qty)}
-                  {categorySeat ? ` · ${categorySeat}` : ''}
-                </>
-              ) : (
-                '\u00a0'
-              )}
-            </p>
+          <div className="flex items-start justify-end gap-2 border-t border-gray-700/35 pt-2">
+            <div className="min-w-0 max-w-full text-right">
+              <p className="text-base font-bold leading-tight tabular-nums text-gold-300 sm:text-lg">
+                {price || '—'}
+              </p>
+              {qty != null || categorySeat ? (
+                <p className="mt-0.5 text-[10px] leading-snug text-gray-500">
+                  {qty != null ? tr.ticketQty(qty) : null}
+                  {qty != null && categorySeat ? ' · ' : null}
+                  {categorySeat ?? null}
+                </p>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -279,9 +281,7 @@ export function useTicketWall(
         [...localPosts, ...shared].forEach(p => {
           merged.set(p.id, localIds.has(p.id) ? { ...p, isUser: true } : p);
         });
-        return Array.from(merged.values())
-          .sort((a, b) => b.createdAt - a.createdAt)
-          .slice(0, 200);
+        return sortTicketPostsNewestFirst(Array.from(merged.values())).slice(0, 200);
       });
     });
     return () => {
@@ -294,9 +294,7 @@ export function useTicketWall(
       const merged = new Map<string, TicketWallPost>();
       merged.set(post.id, post);
       prev.forEach(p => merged.set(p.id, p));
-      return Array.from(merged.values())
-        .sort((a, b) => b.createdAt - a.createdAt)
-        .slice(0, 200);
+      return sortTicketPostsNewestFirst(Array.from(merged.values())).slice(0, 200);
     });
   }, []);
 
@@ -345,18 +343,21 @@ export function useTicketWall(
     setUserPosts(prev => {
       const merged = new Map<string, TicketWallPost>([[post.id, { ...post, isUser: true }]]);
       prev.forEach(p => merged.set(p.id, p));
-      return Array.from(merged.values())
-        .sort((a, b) => b.createdAt - a.createdAt)
-        .slice(0, 200);
+      return sortTicketPostsNewestFirst(Array.from(merged.values())).slice(0, 200);
     });
     void persistSharedTicketPost(post);
     return post;
   }, []);
 
   const sellPosts = useMemo(() => {
-    return [...userPosts, ...seedTicketWallPosts]
-      .filter(p => p.kind === 'sell')
-      .sort((a, b) => b.createdAt - a.createdAt);
+    const byId = new Map<string, TicketWallPost>();
+    for (const p of userPosts) {
+      if (p.kind === 'sell') byId.set(p.id, p);
+    }
+    for (const p of seedTicketWallPosts) {
+      if (p.kind === 'sell') byId.set(p.id, p);
+    }
+    return sortTicketPostsNewestFirst(Array.from(byId.values()));
   }, [userPosts]);
 
   return { userPosts, handlePost, sellPosts, highlightPostId };

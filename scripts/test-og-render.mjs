@@ -17,7 +17,10 @@ const { buildCardSvg } = await import(join(root, 'functions/ogCardSvg.ts'));
 
 const svg = buildCardSvg({
   badge: 'TICKETS FOR SALE',
-  headline: '🇳🇿 New Zealand vs Belgium 🇧🇪',
+  homeTeam: 'New Zealand',
+  awayTeam: 'Belgium',
+  flag1: '🇳🇿',
+  flag2: '🇧🇪',
   meta: 'Canada · Vancouver · BC Place',
   kickoff: 'Fri, Jun 26, 8:00 PM',
   detail: 'Match 42 · 2 tickets · Category 2',
