@@ -1,5 +1,16 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Tag, Clock, MessageCircle, ChevronDown, Share2, Check, ShieldAlert } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef, useEffect, type ReactNode } from 'react';
+import {
+  Tag,
+  Clock,
+  MessageCircle,
+  ChevronDown,
+  Share2,
+  Check,
+  ShieldAlert,
+  MapPin,
+  Ticket,
+  Calendar,
+} from 'lucide-react';
 import { AnalyticsEvent, track } from './analytics';
 import type { Lang, Translations } from './i18n';
 import {
@@ -16,12 +27,12 @@ import type { TicketSellPayload } from './ticketPostForm';
 import { formatCategorySeatLine, getWhatsappHref } from './ticketPostForm';
 import {
   formatMatchKickoffDisplay,
-  hostCountryForCity,
   primaryScheduleMatchForSellPost,
   resolvedSellMatches,
   sellPostPassesCityFilter,
-  sellPriceLine,
-  sellUserDescription,
+  sellFixedPriceDisplay,
+  sellHasFixedPrice,
+  sellNotesExcludingStructured,
   whatsappPrefillContext,
 } from './sellPostResolve';
 import {
@@ -70,12 +81,17 @@ function TicketPostDetails({
   text,
   tr,
   className = 'mt-2.5',
+  muted = false,
 }: {
   text: string;
   tr: Translations;
   className?: string;
+  muted?: boolean;
 }) {
-  const toggleCls = 'text-gold-400/90 hover:text-gold-300';
+  const toggleCls = muted ? 'text-gray-500 hover:text-gray-400' : 'text-gold-400/90 hover:text-gold-300';
+  const bodyCls = muted
+    ? 'text-sm leading-relaxed text-slate-400 whitespace-pre-line'
+    : 'text-sm leading-relaxed text-gray-300 whitespace-pre-line';
   const trimmed = text.trim();
   const [expanded, setExpanded] = useState(false);
   const [canExpand, setCanExpand] = useState(false);
@@ -93,7 +109,7 @@ function TicketPostDetails({
     <div className={className}>
       <p
         ref={bodyRef}
-        className={`text-sm leading-relaxed text-gray-300 whitespace-pre-line ${expanded ? '' : 'line-clamp-4'}`}
+        className={`${bodyCls} ${expanded ? '' : 'line-clamp-3'}`}
       >
         {trimmed}
       </p>
@@ -132,6 +148,37 @@ export function TicketSafetyDisclaimer({ tr }: { tr: Translations }) {
   );
 }
 
+function InfoGridRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <li className="flex gap-3">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pitch-900/80 text-base">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1 pt-0.5">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">{label}</p>
+        <div className="mt-0.5 text-sm font-medium leading-snug text-gray-100">{children}</div>
+      </div>
+    </li>
+  );
+}
+
+function buildSeatsLine(p: TicketSellPayload, tr: Translations): string | null {
+  const seat = formatCategorySeatLine(p);
+  const qty = p.quantity >= 1 ? p.quantity : null;
+  if (seat && qty != null) return `${seat} ${tr.ticketCardTicketCount(qty)}`;
+  if (seat) return seat;
+  if (qty != null) return tr.ticketCardTicketCount(qty).replace(/^\(|\)$/g, '');
+  return null;
+}
+
 function timeAgo(ts: number, tr: Translations): string {
   const mins = Math.floor((Date.now() - ts) / 60000);
   if (mins < 1) return tr.ticketWallJustNow;
@@ -156,82 +203,116 @@ function TicketSellPostCard({
   const schedule = primaryScheduleMatchForSellPost(post);
   const allRes = resolvedSellMatches(post);
   const extra = allRes.length > 1 ? allRes.length - 1 : 0;
-  const country = schedule ? hostCountryForCity(schedule.city) : undefined;
-  const price = sellPriceLine(post, tr);
-  const desc = sellUserDescription(post);
+  const hasFixed = sellHasFixedPrice(post);
+  const fixedPrice = sellFixedPriceDisplay(post);
+  const sellerNotes = sellNotesExcludingStructured(post, schedule);
   const waHref = getWhatsappHref(post, tr.ticketWhatsappPrefill(whatsappPrefillContext(post)));
-  const qty = p?.quantity != null && p.quantity >= 1 ? p.quantity : null;
-  const categorySeat = p ? formatCategorySeatLine(p) : null;
-  const metaLine = schedule
-    ? [country, schedule.city, schedule.stadium].filter(Boolean).join(' · ')
+  const seatsLine = p ? buildSeatsLine(p, tr) : null;
+  const stadiumLine = schedule
+    ? [schedule.stadium, schedule.city].filter(Boolean).join(', ')
     : null;
 
   return (
     <article
       id={ticketPostElementId(post.id)}
-      className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-700/50 bg-pitch-800 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold-500/40 hover:shadow-lg hover:shadow-gold-900/10 ${
-        post.isUser ? 'ring-1 ring-gold-500/30' : ''
+      className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-700/40 bg-pitch-800/95 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold-500/35 hover:shadow-xl hover:shadow-black/20 ${
+        post.isUser ? 'ring-1 ring-gold-500/25' : ''
       } ${highlighted ? 'ring-2 ring-grass-400 ring-offset-2 ring-offset-pitch-900' : ''}`}
     >
-      <div className="flex min-h-0 flex-1 flex-col p-3.5 sm:p-4">
-        <div className="mb-2.5 shrink-0 space-y-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-full border border-gold-500/30 bg-gold-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-gold-300/90">
-              <Tag className="h-3 w-3 shrink-0" />
-              {tr.tabTicketSell}
-            </span>
-            {post.isUser ? (
-              <span className="rounded bg-grass-500/15 px-1.5 py-px text-[10px] font-medium text-grass-300/90">
-                {tr.ticketWallYourPost}
+      <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+        {/* Zone 1 — status, price anchor, buyer-fee badge */}
+        <header className="shrink-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-grass-600/40 bg-grass-900/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-grass-300">
+                <Tag className="h-3 w-3 shrink-0" aria-hidden />
+                {tr.ticketSellStatusBadge}
               </span>
-            ) : null}
-            <TicketShareButton post={post} tr={tr} />
-          </div>
-          <div className="flex items-start justify-end gap-2 border-t border-gray-700/35 pt-2">
-            <div className="min-w-0 max-w-full text-right">
-              <p className="text-base font-bold leading-tight tabular-nums text-gold-300 sm:text-lg">
-                {price || '—'}
-              </p>
-              {qty != null || categorySeat ? (
-                <p className="mt-0.5 text-[10px] leading-snug text-gray-500">
-                  {qty != null ? tr.ticketQty(qty) : null}
-                  {qty != null && categorySeat ? ' · ' : null}
-                  {categorySeat ?? null}
-                </p>
+              {post.isUser ? (
+                <span className="rounded-full bg-gold-500/15 px-2 py-0.5 text-[10px] font-semibold text-gold-200/90">
+                  {tr.ticketWallYourPost}
+                </span>
               ) : null}
+              <TicketShareButton post={post} tr={tr} />
+            </div>
+
+            <div className="shrink-0 text-right">
+              {hasFixed && fixedPrice ? (
+                <p className="text-2xl font-extrabold leading-none tabular-nums tracking-tight text-gold-300 sm:text-[1.65rem]">
+                  {fixedPrice}
+                </p>
+              ) : (
+                <div className="space-y-0.5">
+                  <p className="text-lg font-extrabold leading-tight text-orange-300 sm:text-xl">
+                    {tr.ticketPriceNegotiableTitle}
+                  </p>
+                  <p className="text-[11px] font-semibold text-gray-400">{tr.ticketPriceNegotiableHint}</p>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        </header>
 
-        <div className="flex min-h-0 flex-1 flex-col">
-        {schedule ? (
-          <>
-            <p className="text-sm font-semibold leading-snug text-gray-100">
-              <span className="mr-1" aria-hidden>
-                {schedule.flag1}
-              </span>
-              {schedule.homeTeam}{' '}
-              <span className="font-normal text-gray-500">{tr.ticketSellVs}</span> {schedule.awayTeam}
-              <span className="ml-1" aria-hidden>
-                {schedule.flag2}
-              </span>
+        {/* Zone 2 — structured info grid */}
+        <ul className="mt-5 flex-1 space-y-4 py-1">
+          <InfoGridRow icon="🏟️" label={tr.ticketCardLabelMatch}>
+            {schedule ? (
+              <>
+                <span className="mr-1" aria-hidden>
+                  {schedule.flag1}
+                </span>
+                {schedule.homeTeam}{' '}
+                <span className="font-normal text-gray-500">{tr.ticketSellVs}</span> {schedule.awayTeam}
+                <span className="ml-1" aria-hidden>
+                  {schedule.flag2}
+                </span>
+                {extra > 0 ? (
+                  <p className="mt-1 text-[11px] font-normal text-gray-500">
+                    {tr.ticketSellExtraMatches(extra)}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <span className="text-gray-300">{post.summary}</span>
+            )}
+          </InfoGridRow>
+
+          {stadiumLine ? (
+            <InfoGridRow icon={<MapPin className="h-4 w-4 text-sky-400" />} label={tr.ticketCardLabelStadium}>
+              {stadiumLine}
+            </InfoGridRow>
+          ) : null}
+
+          {schedule ? (
+            <InfoGridRow icon={<Calendar className="h-4 w-4 text-gold-400/90" />} label={tr.ticketCardLabelKickoff}>
+              {formatMatchKickoffDisplay(schedule, lang)}
+            </InfoGridRow>
+          ) : null}
+
+          {seatsLine ? (
+            <InfoGridRow icon={<Ticket className="h-4 w-4 text-gold-300" />} label={tr.ticketCardLabelSeats}>
+              {seatsLine}
+            </InfoGridRow>
+          ) : null}
+        </ul>
+
+        {/* Zone 3 — seller notes (deduped, muted) */}
+        {sellerNotes ? (
+          <div className="mb-4 shrink-0 rounded-xl bg-pitch-900/60 px-3.5 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+              {tr.ticketSellerNotesHeading}
             </p>
-            {metaLine ? <p className="mt-1 text-[11px] leading-snug text-gray-500">{metaLine}</p> : null}
-            <p className="mt-0.5 text-[11px] text-gray-500">{formatMatchKickoffDisplay(schedule, lang)}</p>
-            {extra > 0 ? (
-              <p className="mt-1 text-[10px] text-gray-600">{tr.ticketSellExtraMatches(extra)}</p>
-            ) : null}
-          </>
-        ) : (
-          <p className="text-sm leading-snug text-gray-300">{post.summary}</p>
-        )}
+            <TicketPostDetails
+              text={sellerNotes}
+              tr={tr}
+              className="mt-2"
+              muted
+            />
+          </div>
+        ) : null}
 
-        <div className="mt-2.5 min-h-[4.5rem] flex-1">
-          <TicketPostDetails text={desc} tr={tr} className="mt-0" />
-        </div>
-        </div>
-
-        <div className="mt-auto shrink-0 space-y-2 border-t border-gray-700/40 pt-3">
+        {/* Zone 4 — CTA + trust */}
+        <footer className="mt-auto shrink-0 space-y-2.5 pt-2">
           {waHref ? (
             <a
               href={waHref}
@@ -244,18 +325,24 @@ function TicketSellPostCard({
                   is_user: Boolean(post.isUser),
                 })
               }
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white transition hover:brightness-110"
+              className="animate-wa-pulse flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.99]"
               style={{ backgroundColor: '#25D366' }}
             >
-              <MessageCircle className="h-4 w-4 shrink-0" />
+              <MessageCircle className="h-5 w-5 shrink-0" />
               {tr.contactWhatsApp}
             </a>
           ) : null}
-          <p className="flex items-center gap-1 text-[10px] text-gray-600">
+          <p className="px-1 text-center text-xs leading-relaxed text-gray-500">
+            <span aria-hidden className="mr-0.5">
+              🔒
+            </span>
+            {tr.ticketTrustGuarantee}
+          </p>
+          <p className="flex items-center justify-center gap-1 text-[10px] text-gray-600">
             <Clock className="h-3 w-3 shrink-0" />
             <span>{timeAgo(post.createdAt, tr)}</span>
           </p>
-        </div>
+        </footer>
       </div>
     </article>
   );

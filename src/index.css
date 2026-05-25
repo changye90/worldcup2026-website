@@ -34,6 +34,22 @@
   animation: pulse-cta 1.6s ease-in-out infinite;
 }
 
+@keyframes wa-pulse {
+  0%,
+  100% {
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 4px 22px rgba(37, 211, 102, 0.55);
+    transform: scale(1.015);
+  }
+}
+
+.animate-wa-pulse {
+  animation: wa-pulse 2.4s ease-in-out infinite;
+}
+
 @keyframes buy-ticker {
   0% {
     transform: translateX(0);

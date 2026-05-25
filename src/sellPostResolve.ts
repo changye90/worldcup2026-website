@@ -85,12 +85,81 @@ export function formatMatchKickoffDisplay(m: Match, lang: Lang): string {
   });
 }
 
+export function sellHasFixedPrice(post: TicketWallPost): boolean {
+  const p = sellPayload(post);
+  if (!p) return false;
+  return p.priceType === 'fixed' && p.priceAmount != null && Number.isFinite(p.priceAmount);
+}
+
 export function sellPriceLine(post: TicketWallPost, tr: Translations): string {
   const p = sellPayload(post);
   if (!p) return '';
   if (p.priceType === 'negotiable') return tr.formPriceNegotiable;
   if (p.priceAmount != null && Number.isFinite(p.priceAmount)) return `$${p.priceAmount} USD`;
   return '';
+}
+
+export function sellFixedPriceDisplay(post: TicketWallPost): string | null {
+  const p = sellPayload(post);
+  if (!p || !sellHasFixedPrice(post)) return null;
+  return `$${p.priceAmount} USD`;
+}
+
+/** Tokens from structured fields — used to strip duplicate lines from seller notes. */
+export function sellStructuredDedupeTokens(
+  post: TicketWallPost,
+  schedule: Match | null,
+): string[] {
+  const p = sellPayload(post);
+  const tokens: string[] = [];
+  if (schedule) {
+    tokens.push(
+      schedule.homeTeam,
+      schedule.awayTeam,
+      schedule.city,
+      schedule.stadium,
+      schedule.country ?? '',
+      `Match ${schedule.matchNumber}`,
+    );
+  }
+  if (p) {
+    tokens.push(p.matches.join(' '));
+    if (p.category?.trim()) tokens.push(p.category.trim());
+    if (p.seatDetails?.trim()) tokens.push(p.seatDetails.trim());
+    tokens.push(String(p.quantity));
+  }
+  tokens.push(post.summary);
+  return tokens;
+}
+
+function normalizeDedupeText(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Seller notes with lines that repeat structured grid data removed or softened. */
+export function sellNotesExcludingStructured(
+  post: TicketWallPost,
+  schedule: Match | null,
+): string {
+  const raw = sellUserDescription(post);
+  if (!raw.trim()) return '';
+  const blob = normalizeDedupeText(sellStructuredDedupeTokens(post, schedule).join(' '));
+  const paragraphs = raw.split(/\n+/).map(p => p.trim()).filter(Boolean);
+  const kept = paragraphs.filter(p => {
+    const n = normalizeDedupeText(p);
+    if (!n || n.length < 10) return true;
+    if (blob.includes(n)) return false;
+    const words = n.split(' ').filter(w => w.length > 2);
+    if (!words.length) return true;
+    const overlap = words.filter(w => blob.includes(w)).length;
+    return overlap / words.length < 0.62;
+  });
+  return kept.join('\n').trim();
 }
 
 export function sellUserDescription(post: TicketWallPost): string {
