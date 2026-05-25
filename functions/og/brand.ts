@@ -1,5 +1,8 @@
+import { ogStaticJpegResponse } from '../ogFallback';
 import { buildBrandCardSvg } from '../ogBrandSvg';
 import { MIN_OG_IMAGE_BYTES, OG_IMAGE_CONTENT_TYPE, svgToOgJpeg } from '../ogImage';
+
+const BRAND_FALLBACK = '/og-okcopa.jpg';
 
 const IMAGE_HEADERS = {
   'Content-Type': OG_IMAGE_CONTENT_TYPE,
@@ -15,7 +18,6 @@ export const onRequest: PagesFunction = async context => {
     return new Response(jpeg, { headers: IMAGE_HEADERS });
   } catch (err) {
     console.error('og/brand render failed', err);
-    const staticUrl = new URL('/og-okcopa.jpg', context.request.url);
-    return Response.redirect(staticUrl.toString(), 302);
+    return ogStaticJpegResponse(context.request.url, BRAND_FALLBACK);
   }
 };

@@ -1,3 +1,4 @@
+import { ogStaticJpegResponse } from '../ogFallback';
 import { buildCardSvg } from '../ogCardSvg';
 import { cardContentFromRow } from '../ogCardContent';
 import {
@@ -7,6 +8,8 @@ import {
 } from '../ogImage';
 import { fetchTicketRow } from '../ogTicket';
 import { resolveSupabaseEnv } from '../supabaseEnv';
+
+const TICKET_FALLBACK = '/og-ticket-fallback.jpg';
 
 const IMAGE_HEADERS = {
   'Content-Type': OG_IMAGE_CONTENT_TYPE,
@@ -45,7 +48,6 @@ export const onRequest: PagesFunction = async context => {
     return new Response(jpeg, { headers: IMAGE_HEADERS });
   } catch (err) {
     console.error('og/ticket render failed', err);
-    const staticUrl = new URL('/og-ticket-fallback.jpg', context.request.url);
-    return Response.redirect(staticUrl.toString(), 302);
+    return ogStaticJpegResponse(context.request.url, TICKET_FALLBACK);
   }
 };

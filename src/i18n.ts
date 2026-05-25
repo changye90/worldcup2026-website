@@ -210,18 +210,10 @@ export const t = {
     ticketShareCopied: 'Copied — paste into WhatsApp',
     ticketShareAria: 'Share this listing',
     ticketShareHighlight: 'Shared listing',
-    ticketShareSellIntro: "Hey guys! Just listed my World Cup '26 tickets on OKCOPA:",
-    ticketShareSellMatchLabel: 'Match',
-    ticketShareSellCategoryLabel: 'Category/Qty',
-    ticketShareSellPriceLabel: 'Price',
-    ticketShareSellLinkCta:
-      'You can click the link below to check my exact seats and chat with me directly via WhatsApp!',
-    ticketShareSellPlatformPitch:
-      "Also, highly recommend this awesome fan-to-fan directory. It's a personal project built by a fellow fan—100% free with 0% platform fees (finally we can skip that crazy 30% StubHub markup!). Feel free to check it out! 🤝⚽",
-    ticketShareSellLinkCue: '👇👇👇',
-    ticketShareBuyIntro: "Hey! I'm looking for World Cup '26 tickets on OKCOPA:",
-    ticketShareBuyTargetLabel: 'Looking for',
-    ticketShareBuyBudgetLabel: 'Budget',
+    ticketShareSellBody:
+      'I posted a ticket transfer on OKCOPA, a free fan-to-fan hub. Open the link and tap WhatsApp on the listing to message me directly.',
+    ticketShareBuyBody:
+      'I posted a ticket wanted ad on OKCOPA, a free fan-to-fan hub. Open the link and tap WhatsApp on the listing to reach me.',
     ticketSellCardMatchup: 'Fixture',
     ticketSellVs: 'vs',
     ticketSellCardCountry: 'Country',
@@ -424,18 +416,10 @@ export const t = {
     ticketShareCopied: 'Copiado — pega en WhatsApp',
     ticketShareAria: 'Compartir esta publicación',
     ticketShareHighlight: 'Publicación compartida',
-    ticketShareSellIntro: '¡Hola! Acabo de publicar mis boletos del Mundial 2026 en OKCOPA:',
-    ticketShareSellMatchLabel: 'Partido',
-    ticketShareSellCategoryLabel: 'Categoría/Cant.',
-    ticketShareSellPriceLabel: 'Precio',
-    ticketShareSellLinkCta:
-      'Abre el enlace para ver mis asientos exactos y escríbeme directo por WhatsApp.',
-    ticketShareSellPlatformPitch:
-      'También te recomiendo este directorio fan a fan: proyecto personal de un aficionado, 100% gratis y 0% comisión (¡adiós al recargo del 30% de StubHub!). ¡Échale un vistazo! 🤝⚽',
-    ticketShareSellLinkCue: '👇👇👇',
-    ticketShareBuyIntro: '¡Hola! Busco boletos del Mundial 2026 en OKCOPA:',
-    ticketShareBuyTargetLabel: 'Busco',
-    ticketShareBuyBudgetLabel: 'Presupuesto',
+    ticketShareSellBody:
+      'Publiqué una transferencia de boletos en OKCOPA, un hub fan a fan gratis. Abre el enlace y toca WhatsApp en el anuncio para escribirme directo.',
+    ticketShareBuyBody:
+      'Publiqué que busco boletos en OKCOPA, un hub fan a fan gratis. Abre el enlace y toca WhatsApp en el anuncio para contactarme.',
     ticketSellCardMatchup: 'Partido',
     ticketSellVs: 'vs',
     ticketSellCardCountry: 'País',
@@ -638,18 +622,10 @@ export const t = {
     ticketShareCopied: 'Copiado — cole no WhatsApp',
     ticketShareAria: 'Compartilhar esta publicação',
     ticketShareHighlight: 'Publicação compartilhada',
-    ticketShareSellIntro: 'Oi! Acabei de anunciar meus ingressos da Copa 2026 na OKCOPA:',
-    ticketShareSellMatchLabel: 'Jogo',
-    ticketShareSellCategoryLabel: 'Categoria/Qtd.',
-    ticketShareSellPriceLabel: 'Preço',
-    ticketShareSellLinkCta:
-      'Abra o link para ver meus assentos exatos e fale comigo direto no WhatsApp.',
-    ticketShareSellPlatformPitch:
-      'Recomendo muito este diretório torcedor a torcedor: projeto pessoal de um fã, 100% grátis e 0% de taxa (finalmente dá para fugir dos 30% do StubHub!). Dá uma olhada! 🤝⚽',
-    ticketShareSellLinkCue: '👇👇👇',
-    ticketShareBuyIntro: 'Oi! Estou procurando ingressos da Copa 2026 na OKCOPA:',
-    ticketShareBuyTargetLabel: 'Procuro',
-    ticketShareBuyBudgetLabel: 'Orçamento',
+    ticketShareSellBody:
+      'Anunciei uma transferência de ingressos na OKCOPA, um hub torcedor a torcedor grátis. Abra o link e toque em WhatsApp no anúncio para falar comigo direto.',
+    ticketShareBuyBody:
+      'Anunciei que procuro ingressos na OKCOPA, um hub torcedor a torcedor grátis. Abra o link e toque em WhatsApp no anúncio para me contatar.',
     ticketSellCardMatchup: 'Jogo',
     ticketSellVs: 'x',
     ticketSellCardCountry: 'País',

@@ -64,25 +64,25 @@ function flagImage(emoji: string | undefined, x: number, y: number, size: number
   return `<image href="${href}" x="${x - w / 2}" y="${y - h / 2}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet"/>`;
 }
 
-function matchupBlock(card: OgCardContent, accent: string): string {
-  const home = card.homeTeam ? truncate(card.homeTeam, 28) : '';
-  const away = card.awayTeam ? truncate(card.awayTeam, 28) : '';
+function matchupBlock(card: OgCardContent, y: number): string {
+  const home = card.homeTeam ? truncate(card.homeTeam, 24) : '';
+  const away = card.awayTeam ? truncate(card.awayTeam, 24) : '';
   if (!home && !away) {
-    const headline = truncate(card.headline || '', 56);
-    return `<text x="${CX}" y="300" text-anchor="middle" fill="#f9fafb" font-family="Inter, sans-serif" font-size="46" font-weight="700">${escapeXml(headline)}</text>`;
+    const headline = truncate(card.headline || '', 48);
+    const headlineSize = headline.length > 40 ? 52 : 64;
+    return `<text x="${CX}" y="${y + headlineSize * 0.35}" text-anchor="middle" fill="#f9fafb" font-family="Inter, sans-serif" font-size="${headlineSize}" font-weight="800">${escapeXml(headline)}</text>`;
   }
 
-  const fontSize = home.length + away.length > 36 ? 38 : 44;
-  const vsSize = 30;
-  const flagW = 52;
-  const gap = 18;
+  const fontSize = home.length + away.length > 32 ? 50 : 58;
+  const vsSize = 38;
+  const flagW = 72;
+  const gap = 22;
   const homeW = home.length * (fontSize * 0.52);
   const awayW = away.length * (fontSize * 0.52);
-  const vsW = 48;
+  const vsW = 56;
   const total =
     flagW + gap + homeW + gap + vsW + gap + awayW + gap + flagW;
   let x = CX - total / 2 + flagW / 2;
-  const y = 292;
   const parts: string[] = [];
 
   parts.push(flagImage(card.flag1, x, y, flagW));
@@ -107,51 +107,53 @@ function matchupBlock(card: OgCardContent, accent: string): string {
 export function buildCardSvg(card: OgCardContent): string {
   const isSell = card.badge.includes('SALE');
   const accent = isSell ? '#fbbf24' : '#38bdf8';
-  const accentSoft = isSell ? 'rgba(251,191,36,0.28)' : 'rgba(56,189,248,0.28)';
+  const accentSoft = isSell ? 'rgba(251,191,36,0.32)' : 'rgba(56,189,248,0.32)';
 
-  const badge = truncate(card.badge, 40);
-  const meta = card.meta ? truncate(card.meta, 72) : '';
-  const kickoff = card.kickoff ? truncate(card.kickoff, 44) : '';
-  const detailLines = wrapLines(card.detail, 64, 2);
-  const price = card.price ? truncate(card.price, 28) : '';
+  const badge = truncate(card.badge, 36);
+  const meta = card.meta ? truncate(card.meta, 56) : '';
+  const kickoff = card.kickoff ? truncate(card.kickoff, 40) : '';
+  const detailLines = wrapLines(card.detail, 52, 2);
+  const price = card.price ? truncate(card.price, 24) : '';
 
   const hero = getOgHeroJpegDataUrl();
   const bgLayer = hero
     ? `<image href="${hero}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice"/>`
     : `<rect width="${W}" height="${H}" fill="#1a3d2e"/>`;
 
-  const textLines: string[] = [];
-  let y = 168;
+  const badgeFont = 36;
+  const badgePadX = Math.min(480, Math.max(320, badge.length * 18));
+  const badgeY = 108;
+  const matchupY = 248;
 
-  textLines.push(
-    `<rect x="${CX - 210}" y="${y - 28}" width="420" height="40" rx="12" fill="${accentSoft}"/>`,
-    `<text x="${CX}" y="${y}" text-anchor="middle" fill="${accent}" font-family="Inter, sans-serif" font-size="22" font-weight="700">${escapeXml(badge)}</text>`,
-  );
+  const textLines: string[] = [
+    `<rect x="${CX - badgePadX / 2}" y="${badgeY - 36}" width="${badgePadX}" height="56" rx="14" fill="${accentSoft}"/>`,
+    `<text x="${CX}" y="${badgeY}" text-anchor="middle" fill="${accent}" font-family="Inter, sans-serif" font-size="${badgeFont}" font-weight="800" letter-spacing="1">${escapeXml(badge)}</text>`,
+  ];
 
-  const matchup = matchupBlock(card, accent);
-  y = 340;
+  const matchup = matchupBlock(card, matchupY);
+  let y = 348;
   if (meta) {
     textLines.push(
-      `<text x="${CX}" y="${y}" text-anchor="middle" fill="#d1d5db" font-family="Inter, sans-serif" font-size="26" font-weight="500">${escapeXml(meta)}</text>`,
+      `<text x="${CX}" y="${y}" text-anchor="middle" fill="#f3f4f6" font-family="Inter, sans-serif" font-size="38" font-weight="600">${escapeXml(meta)}</text>`,
     );
-    y += 38;
+    y += 48;
   }
   if (kickoff) {
     textLines.push(
-      `<text x="${CX}" y="${y}" text-anchor="middle" fill="#9ca3af" font-family="Inter, sans-serif" font-size="24" font-weight="500">${escapeXml(kickoff)}</text>`,
+      `<text x="${CX}" y="${y}" text-anchor="middle" fill="#d1d5db" font-family="Inter, sans-serif" font-size="34" font-weight="600">${escapeXml(kickoff)}</text>`,
     );
-    y += 36;
+    y += 44;
   }
   for (const line of detailLines) {
     textLines.push(
-      `<text x="${CX}" y="${y}" text-anchor="middle" fill="#e5e7eb" font-family="Inter, sans-serif" font-size="28" font-weight="500">${escapeXml(line)}</text>`,
+      `<text x="${CX}" y="${y}" text-anchor="middle" fill="#e5e7eb" font-family="Inter, sans-serif" font-size="36" font-weight="600">${escapeXml(line)}</text>`,
     );
-    y += 34;
+    y += 42;
   }
   if (price) {
-    y += 8;
+    y += 10;
     textLines.push(
-      `<text x="${CX}" y="${y}" text-anchor="middle" fill="${accent}" font-family="Inter, sans-serif" font-size="40" font-weight="700">${escapeXml(price)}</text>`,
+      `<text x="${CX}" y="${y}" text-anchor="middle" fill="${accent}" font-family="Inter, sans-serif" font-size="72" font-weight="800">${escapeXml(price)}</text>`,
     );
   }
 
@@ -159,15 +161,15 @@ export function buildCardSvg(card: OgCardContent): string {
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
     <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="rgba(10,22,16,0.55)"/>
-      <stop offset="45%" stop-color="rgba(10,22,16,0.72)"/>
-      <stop offset="100%" stop-color="rgba(8,18,14,0.88)"/>
+      <stop offset="0%" stop-color="rgba(10,22,16,0.5)"/>
+      <stop offset="40%" stop-color="rgba(10,22,16,0.68)"/>
+      <stop offset="100%" stop-color="rgba(8,18,14,0.9)"/>
     </linearGradient>
   </defs>
   ${bgLayer}
   <rect width="${W}" height="${H}" fill="url(#shade)"/>
   ${textLines.join('\n  ')}
   ${matchup}
-  <text x="${CX}" y="598" text-anchor="middle" fill="#8fa89a" font-family="Inter, sans-serif" font-size="20" font-weight="600">okcopa.com · World Cup 2026</text>
+  <text x="${CX}" y="616" text-anchor="middle" fill="#9cb8a8" font-family="Inter, sans-serif" font-size="22" font-weight="700">okcopa.com</text>
 </svg>`;
 }
