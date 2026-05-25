@@ -1,7 +1,7 @@
-import type { OgCardContent } from './ogCardContent';
-import { getOgHeroJpegDataUrl } from './ogHeroBg';
-import { getOgFlagSpriteDataUrl } from './ogFlagSprites';
-import { flagEmojiToIso } from './ogFlagIso';
+import type { OgCardContent } from './ogCardContent.ts';
+import { getOgHeroJpegDataUrl } from './ogHeroBg.ts';
+import { getOgFlagSpriteDataUrl } from './ogFlagSprites.ts';
+import { flagEmojiToIso } from './ogFlagIso.ts';
 
 const W = 1200;
 const H = 630;

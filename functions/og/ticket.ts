@@ -1,21 +1,17 @@
 import { buildCardSvg } from '../ogCardSvg';
 import { cardContentFromRow } from '../ogCardContent';
-import { getOgFallbackPng } from '../ogFallbackPng';
-import { svgToPng } from '../ogPng';
+import {
+  MIN_OG_IMAGE_BYTES,
+  OG_IMAGE_CONTENT_TYPE,
+  svgToOgJpeg,
+} from '../ogImage';
 import { fetchTicketRow } from '../ogTicket';
 import { resolveSupabaseEnv } from '../supabaseEnv';
 
-const PNG_HEADERS = {
-  'Content-Type': 'image/png',
+const IMAGE_HEADERS = {
+  'Content-Type': OG_IMAGE_CONTENT_TYPE,
   'Cache-Control': 'public, max-age=3600',
 } as const;
-
-const FALLBACK_HEADERS = {
-  'Content-Type': 'image/png',
-  'Cache-Control': 'public, max-age=300',
-} as const;
-
-const MIN_PNG_BYTES = 20_000;
 
 export const onRequest: PagesFunction = async context => {
   const id = new URL(context.request.url).searchParams.get('id')?.trim();
@@ -42,17 +38,14 @@ export const onRequest: PagesFunction = async context => {
   }
 
   try {
-    const png = await svgToPng(buildCardSvg(card));
-    if (png.byteLength < MIN_PNG_BYTES) {
-      throw new Error(`png too small: ${png.byteLength}`);
+    const jpeg = await svgToOgJpeg(buildCardSvg(card));
+    if (jpeg.byteLength < MIN_OG_IMAGE_BYTES) {
+      throw new Error(`jpeg too small: ${jpeg.byteLength}`);
     }
-    return new Response(png, { headers: PNG_HEADERS });
-  } catch {
-    const fallback = getOgFallbackPng();
-    if (fallback.byteLength >= MIN_PNG_BYTES) {
-      return new Response(fallback, { headers: FALLBACK_HEADERS });
-    }
-    const staticUrl = new URL('/og-ticket-fallback.png', context.request.url);
+    return new Response(jpeg, { headers: IMAGE_HEADERS });
+  } catch (err) {
+    console.error('og/ticket render failed', err);
+    const staticUrl = new URL('/og-ticket-fallback.jpg', context.request.url);
     return Response.redirect(staticUrl.toString(), 302);
   }
 };

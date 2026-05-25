@@ -12,7 +12,7 @@ export interface TicketOgRow {
 }
 
 export function isLinkPreviewBot(userAgent: string): boolean {
-  return /whatsapp|facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|telegrambot|discordbot|pinterest/i.test(
+  return /whatsapp|facebookexternalhit|facebot|meta-externalagent|facebookcatalog|twitterbot|linkedinbot|slackbot|telegrambot|discordbot|pinterest/i.test(
     userAgent,
   );
 }
@@ -89,7 +89,7 @@ export function buildOgHtml(opts: {
   <meta property="og:image:secure_url" content="${imageUrl}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:image:alt" content="${title}" />
   <meta property="og:site_name" content="OKcopa" />
   <meta name="twitter:card" content="summary_large_image" />

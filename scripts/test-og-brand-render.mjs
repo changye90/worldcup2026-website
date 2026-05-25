@@ -1,11 +1,12 @@
 /**
- * Render brand OG card → public/og-okcopa.png
+ * Render brand OG card → public/og-okcopa.jpg
  * Run: node scripts/test-og-brand-render.mjs
  */
 import { writeFileSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
+import { pngToJpeg } from './og-png-to-jpeg.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const wasm = readFileSync(join(root, 'node_modules/@resvg/resvg-wasm/index_bg.wasm'));
@@ -24,7 +25,8 @@ const resvg = new Resvg(svg, {
   },
 });
 const png = resvg.render().asPng();
-const out = join(root, 'public/og-okcopa.png');
-writeFileSync(out, png);
-writeFileSync(join(root, 'dist/og-brand-test.png'), png);
-console.log('wrote', out, png.length, 'bytes');
+const jpeg = pngToJpeg(png, 78);
+const out = join(root, 'public/og-okcopa.jpg');
+writeFileSync(out, jpeg);
+writeFileSync(join(root, 'dist/og-brand-test.jpg'), jpeg);
+console.log('wrote', out, jpeg.length, 'bytes (png was', png.length, ')');

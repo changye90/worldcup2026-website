@@ -1,22 +1,21 @@
 import { buildBrandCardSvg } from '../ogBrandSvg';
-import { svgToPng } from '../ogPng';
+import { MIN_OG_IMAGE_BYTES, OG_IMAGE_CONTENT_TYPE, svgToOgJpeg } from '../ogImage';
 
-const PNG_HEADERS = {
-  'Content-Type': 'image/png',
+const IMAGE_HEADERS = {
+  'Content-Type': OG_IMAGE_CONTENT_TYPE,
   'Cache-Control': 'public, max-age=86400',
 } as const;
 
-const MIN_PNG_BYTES = 20_000;
-
-export const onRequest: PagesFunction = async () => {
+export const onRequest: PagesFunction = async context => {
   try {
-    const png = await svgToPng(buildBrandCardSvg());
-    if (png.byteLength < MIN_PNG_BYTES) {
-      throw new Error(`brand og png too small: ${png.byteLength}`);
+    const jpeg = await svgToOgJpeg(buildBrandCardSvg());
+    if (jpeg.byteLength < MIN_OG_IMAGE_BYTES) {
+      throw new Error(`brand og jpeg too small: ${jpeg.byteLength}`);
     }
-    return new Response(png, { headers: PNG_HEADERS });
+    return new Response(jpeg, { headers: IMAGE_HEADERS });
   } catch (err) {
     console.error('og/brand render failed', err);
-    return new Response('OG image unavailable', { status: 503 });
+    const staticUrl = new URL('/og-okcopa.jpg', context.request.url);
+    return Response.redirect(staticUrl.toString(), 302);
   }
 };

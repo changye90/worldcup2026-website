@@ -30,7 +30,7 @@ Pages → 项目 → **Settings → Environment variables**（Production）添�
 | `SUPABASE_ANON_KEY` | 与 `VITE_SUPABASE_ANON_KEY` 相同 |
 | `SITE_ORIGIN` | 可选，`https://okcopa.com` |
 
-缺 `SUPABASE_*` 时 WhatsApp 链接标题会是通用文案；缺 `public/fonts` 时预览图可能**全黑**（已内置 Inter，需随 `dist` 一起部署）。详见 [docs/whatsapp-link-preview.md](./whatsapp-link-preview.md)。
+缺 `SUPABASE_*` 时 WhatsApp 链接标题会是通用文案（务必在 Production 配齐，与 `VITE_*` 同值）。预览图输出为 **JPEG（约 150KB）**——超过 ~300KB 时 WhatsApp 常会**不显示缩略图**。详见 [docs/whatsapp-link-preview.md](./whatsapp-link-preview.md)。
 
 票务分享预览图由 **`/og/ticket?id=帖子ID`** 动态生成（卡片对阵样式），无需手传每张图。改赛程后执行 `npm run export:og-matches`。详见 [docs/whatsapp-link-preview.md](./whatsapp-link-preview.md)。
 
