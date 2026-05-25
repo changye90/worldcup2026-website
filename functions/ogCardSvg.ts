@@ -104,6 +104,30 @@ function matchupBlock(card: OgCardContent, y: number): string {
   return parts.join('\n  ');
 }
 
+interface TextRow {
+  text: string;
+  size: number;
+  fill: string;
+  weight: number;
+  gapBefore: number;
+}
+
+function textRowSvg(row: TextRow, baselineY: number): string {
+  return `<text x="${CX}" y="${baselineY}" text-anchor="middle" fill="${row.fill}" font-family="Inter, sans-serif" font-size="${row.size}" font-weight="${row.weight}">${escapeXml(row.text)}</text>`;
+}
+
+/** Stack rows from a bottom baseline upward; returns SVG lines + top edge of block. */
+function stackTextRows(rows: TextRow[], bottomBaseline: number): { svg: string[]; top: number } {
+  let baseline = bottomBaseline;
+  const svg: string[] = [];
+  for (const row of rows) {
+    baseline -= row.gapBefore;
+    svg.push(textRowSvg(row, baseline));
+    baseline -= Math.round(row.size * 0.88);
+  }
+  return { svg, top: baseline };
+}
+
 export function buildCardSvg(card: OgCardContent): string {
   const isSell = card.badge.includes('SALE');
   const accent = isSell ? '#fbbf24' : '#38bdf8';
@@ -123,39 +147,48 @@ export function buildCardSvg(card: OgCardContent): string {
   const badgeFont = 36;
   const badgePadX = Math.min(480, Math.max(320, badge.length * 18));
   const badgeY = 108;
-  const matchupY = 248;
+  const matchupY = 228;
+  const footerBaseline = 602;
+  const footerSize = 20;
+
+  const lowerRows: TextRow[] = [];
+  if (price) {
+    const priceSize = price.length > 14 ? 56 : 64;
+    lowerRows.push({ text: price, size: priceSize, fill: accent, weight: 800, gapBefore: 20 });
+  }
+  for (let i = detailLines.length - 1; i >= 0; i--) {
+    lowerRows.push({
+      text: detailLines[i],
+      size: 34,
+      fill: '#e5e7eb',
+      weight: 600,
+      gapBefore: i === detailLines.length - 1 && !price ? 20 : 14,
+    });
+  }
+  if (kickoff) {
+    lowerRows.push({ text: kickoff, size: 32, fill: '#d1d5db', weight: 600, gapBefore: 14 });
+  }
+  if (meta) {
+    lowerRows.push({ text: meta, size: 36, fill: '#f3f4f6', weight: 600, gapBefore: 18 });
+  }
+
+  const footerTop = footerBaseline - footerSize;
+  let stackBottom = footerTop - 22;
+  const matchupBottom = matchupY + 72;
+  let stacked = stackTextRows(lowerRows, stackBottom);
+  if (stacked.top < matchupBottom + 20 && lowerRows.length > 0) {
+    stackBottom += matchupBottom + 20 - stacked.top;
+    stacked = stackTextRows(lowerRows, stackBottom);
+  }
 
   const textLines: string[] = [
     `<rect x="${CX - badgePadX / 2}" y="${badgeY - 36}" width="${badgePadX}" height="56" rx="14" fill="${accentSoft}"/>`,
     `<text x="${CX}" y="${badgeY}" text-anchor="middle" fill="${accent}" font-family="Inter, sans-serif" font-size="${badgeFont}" font-weight="800" letter-spacing="1">${escapeXml(badge)}</text>`,
+    ...stacked.svg,
+    `<text x="${CX}" y="${footerBaseline}" text-anchor="middle" fill="#9cb8a8" font-family="Inter, sans-serif" font-size="${footerSize}" font-weight="700">okcopa.com</text>`,
   ];
 
   const matchup = matchupBlock(card, matchupY);
-  let y = 348;
-  if (meta) {
-    textLines.push(
-      `<text x="${CX}" y="${y}" text-anchor="middle" fill="#f3f4f6" font-family="Inter, sans-serif" font-size="38" font-weight="600">${escapeXml(meta)}</text>`,
-    );
-    y += 48;
-  }
-  if (kickoff) {
-    textLines.push(
-      `<text x="${CX}" y="${y}" text-anchor="middle" fill="#d1d5db" font-family="Inter, sans-serif" font-size="34" font-weight="600">${escapeXml(kickoff)}</text>`,
-    );
-    y += 44;
-  }
-  for (const line of detailLines) {
-    textLines.push(
-      `<text x="${CX}" y="${y}" text-anchor="middle" fill="#e5e7eb" font-family="Inter, sans-serif" font-size="36" font-weight="600">${escapeXml(line)}</text>`,
-    );
-    y += 42;
-  }
-  if (price) {
-    y += 10;
-    textLines.push(
-      `<text x="${CX}" y="${y}" text-anchor="middle" fill="${accent}" font-family="Inter, sans-serif" font-size="72" font-weight="800">${escapeXml(price)}</text>`,
-    );
-  }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -170,6 +203,5 @@ export function buildCardSvg(card: OgCardContent): string {
   <rect width="${W}" height="${H}" fill="url(#shade)"/>
   ${textLines.join('\n  ')}
   ${matchup}
-  <text x="${CX}" y="616" text-anchor="middle" fill="#9cb8a8" font-family="Inter, sans-serif" font-size="22" font-weight="700">okcopa.com</text>
 </svg>`;
 }
