@@ -96,7 +96,6 @@ export function buildOgHtml(opts: {
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
   <meta name="twitter:image" content="${imageUrl}" />
-  <meta http-equiv="refresh" content="0;url=${redirectUrl}" />
 </head>
 <body>
   <p><a href="${redirectUrl}">Open on OKcopa</a></p>

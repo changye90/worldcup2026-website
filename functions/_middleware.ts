@@ -47,7 +47,7 @@ export const onRequest: PagesFunction<Env> = async context => {
     });
   }
 
-  const imageUrl = `${origin}/og/ticket?id=${encodeURIComponent(ticketId)}`;
+  const imageUrl = `${origin}/og/ticket.jpg?id=${encodeURIComponent(ticketId)}`;
   const supabase = resolveSupabaseEnv(context.env);
 
   let title = 'OKcopa · World Cup 2026 Tickets';

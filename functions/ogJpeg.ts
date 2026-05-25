@@ -18,6 +18,10 @@ function ensureCodecs(): Promise<void> {
 export async function pngToJpeg(png: Uint8Array, quality = 78): Promise<Uint8Array> {
   await ensureCodecs();
   const imageData = await decodePng(png);
-  const buf = await encodeJpeg(imageData, { quality });
+  const buf = await encodeJpeg(imageData, {
+    quality,
+    baseline: true,
+    progressive: false,
+  });
   return buf instanceof Uint8Array ? buf : new Uint8Array(buf);
 }

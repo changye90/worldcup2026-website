@@ -13,5 +13,11 @@ export async function ogStaticJpegResponse(
   if (!res.ok) {
     return new Response('OG unavailable', { status: 503 });
   }
-  return new Response(await res.arrayBuffer(), { headers: JPEG_HEADERS });
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  return new Response(bytes, {
+    headers: {
+      ...JPEG_HEADERS,
+      'Content-Length': String(bytes.byteLength),
+    },
+  });
 }

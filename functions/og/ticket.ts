@@ -1,20 +1,12 @@
 import { ogStaticJpegResponse } from '../ogFallback';
 import { buildCardSvg } from '../ogCardSvg';
 import { cardContentFromRow } from '../ogCardContent';
-import {
-  MIN_OG_IMAGE_BYTES,
-  OG_IMAGE_CONTENT_TYPE,
-  svgToOgJpeg,
-} from '../ogImage';
+import { jpegResponse } from '../ogImageResponse';
+import { MIN_OG_IMAGE_BYTES, svgToOgJpeg } from '../ogImage';
 import { fetchTicketRow } from '../ogTicket';
 import { resolveSupabaseEnv } from '../supabaseEnv';
 
 const TICKET_FALLBACK = '/og-ticket-fallback.jpg';
-
-const IMAGE_HEADERS = {
-  'Content-Type': OG_IMAGE_CONTENT_TYPE,
-  'Cache-Control': 'public, max-age=3600',
-} as const;
 
 export const onRequest: PagesFunction = async context => {
   const id = new URL(context.request.url).searchParams.get('id')?.trim();
@@ -45,7 +37,7 @@ export const onRequest: PagesFunction = async context => {
     if (jpeg.byteLength < MIN_OG_IMAGE_BYTES) {
       throw new Error(`jpeg too small: ${jpeg.byteLength}`);
     }
-    return new Response(jpeg, { headers: IMAGE_HEADERS });
+    return jpegResponse(jpeg);
   } catch (err) {
     console.error('og/ticket render failed', err);
     return ogStaticJpegResponse(context.request.url, TICKET_FALLBACK);
