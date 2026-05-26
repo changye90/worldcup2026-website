@@ -3,7 +3,7 @@ import {
   MapPin, ChevronLeft, ChevronRight, Bed, Car, Building2,
   Zap, Calendar, Phone, Clock,
   Flame, ChevronDown, Check, Ticket,
-  BarChart3, Tag, Search,
+  BarChart3, Tag, Plus,
 } from 'lucide-react';
 import {
   matches,
@@ -176,6 +176,8 @@ export default function App() {
     const dates = [...new Set(matches.map(m => m.date))].sort();
     return dates[0] ?? null;
   });
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [citiesOpen, setCitiesOpen] = useState(false);
   const [navSolid, setNavSolid] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [carsExpanded, setCarsExpanded] = useState(false);
@@ -260,6 +262,7 @@ export default function App() {
       setActiveMatchNumber(match.matchNumber);
       setActiveCity(match.city);
     }
+    setScheduleOpen(false);
     setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
 
@@ -294,6 +297,7 @@ export default function App() {
             <button
               onClick={() => {
                 track(AnalyticsEvent.HeaderSchedule);
+                setScheduleOpen(true);
                 scheduleSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-white/5"
@@ -366,8 +370,7 @@ export default function App() {
         </div>
 
         <div className="relative z-10 mx-auto max-w-7xl flex-1 px-4 pb-2 pt-20 sm:px-6 sm:pb-3">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-grass-500/20 bg-grass-500/10 px-3 py-1 text-xs text-grass-400">
                 <Zap className="h-3 w-3" />
                 <span>{tr.heroTag}</span>
@@ -382,16 +385,16 @@ export default function App() {
                 <span className="block text-xs text-gray-500 sm:inline sm:text-sm">{tr.heroSubheadExtras}</span>
               </p>
 
-              <div className="mb-5 flex flex-wrap gap-3">
+              <div className="mb-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
                 <button
                   type="button"
                   onClick={() => {
                     track(AnalyticsEvent.HeroSell);
                     setPostModal('sell');
                   }}
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-gold-500 to-gold-600 px-5 py-3 text-sm font-bold text-pitch-900 shadow-lg shadow-gold-900/35 transition hover:brightness-110 active:scale-[0.98]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-pitch-900 shadow-xl shadow-black/30 transition hover:bg-gray-100 active:scale-[0.98] sm:w-auto"
                 >
-                  <Tag className="h-4 w-4" />
+                  <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
                   {tr.heroCtaSell}
                 </button>
                 <button
@@ -400,9 +403,9 @@ export default function App() {
                     track(AnalyticsEvent.HeroBuy);
                     setPostModal('buy');
                   }}
-                  className="inline-flex items-center gap-2 rounded-xl border-2 border-sky-400/60 bg-sky-500/15 px-5 py-3 text-sm font-bold text-sky-100 shadow-lg shadow-black/25 transition hover:border-sky-300 hover:bg-sky-500/25 active:scale-[0.98]"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-black/20 backdrop-blur-sm transition hover:border-white/45 hover:bg-white/15 active:scale-[0.98] sm:w-auto"
                 >
-                  <Search className="h-4 w-4 text-sky-300" />
+                  <Ticket className="h-4 w-4 shrink-0" />
                   {tr.heroCtaBuy}
                 </button>
               </div>
@@ -421,98 +424,94 @@ export default function App() {
                 ))}
               </div>
             </div>
-
-            {/* Category shortcuts — replaces countdown; same vibe as gold CTA */}
-            <div className="w-full shrink-0 lg:w-[17.5rem] grid grid-cols-2 gap-2 lg:grid-cols-1">
-              {([
-                { id: 'tickets', tab: 'tickets' as Tab, label: tr.tabTickets, icon: Ticket, tone: 'gold' as const },
-                { id: 'cars', tab: 'cars' as Tab, label: tr.tabCars, icon: Car, tone: 'grass' as const },
-                { id: 'hotels', tab: 'hotels' as Tab, label: tr.tabHotels, icon: Building2, tone: 'grass' as const },
-                { id: 'odds', tab: 'odds' as Tab, label: tr.tabOdds, icon: BarChart3, tone: 'grass' as const },
-              ]).map(({ id, tab, label, icon: Icon, tone }) => {
-                const isActive = id === 'tickets' ? activeTab === 'tickets' : activeTab === tab;
-                const base =
-                  'flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold shadow-lg transition-all duration-200 active:scale-[0.98]';
-                const goldActive = 'bg-gradient-to-r from-gold-500 to-gold-600 text-pitch-900 shadow-gold-900/35';
-                const goldIdle =
-                  'border-2 border-gold-500/55 bg-pitch-900/70 text-gold-100 shadow-black/30 hover:border-gold-400 hover:bg-gold-500/10';
-                const grassActive = 'bg-grass-600 text-white shadow-grass-900/40';
-                const grassIdle =
-                  'border border-gray-600/80 bg-pitch-900/70 text-gray-200 shadow-black/20 hover:border-grass-500/50 hover:text-white';
-                const cls =
-                  tone === 'gold'
-                    ? `${base} ${isActive ? goldActive : goldIdle}`
-                    : `${base} ${isActive ? grassActive : grassIdle}`;
-
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => {
-                      track(AnalyticsEvent.HeroTab, { tab });
-                      navigateToTab(tab);
-                      setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-                    }}
-                    className={cls}
-                  >
-                    <Icon className="h-4 w-4 shrink-0 opacity-90" />
-                    <span className="truncate">{label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* ── SCHEDULE (cards: blue = group, amber = knockout) ─────────────── */}
-      <section
-        id="schedule"
-        ref={scheduleSectionRef}
-        className="scroll-mt-[72px] border-y border-grass-700/20 bg-pitch-800/60 py-5 sm:py-7"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-                <Calendar className="h-6 w-6 shrink-0 text-emerald-400 sm:h-7 sm:w-7" />
-                <h3 className="text-xl font-extrabold uppercase tracking-[0.12em] text-white sm:text-2xl">
-                  {tr.scheduleTitle}
-                </h3>
-                {scheduleExpandedDate && (
-                  <span className="rounded-full border border-emerald-600/45 bg-emerald-950/55 px-2.5 py-1 text-xs font-bold text-emerald-300 sm:text-sm sm:px-3">
-                    {formatSchedulePill(scheduleExpandedDate)}
-                  </span>
-                )}
-              </div>
-              <p className="mt-1.5 text-xs text-gray-500 sm:text-sm">
-                {tr.scheduleFullRange}
-                {import.meta.env.DEV && (
-                  <span className="ml-1 text-cyan-500/90">· grid UI</span>
-                )}
-              </p>
-            </div>
-            <div className="flex shrink-0 gap-1.5">
-              <button
-                type="button"
-                onClick={() => scroll('left')}
-                className="rounded-lg border border-gray-700/80 bg-pitch-950/90 p-2 text-gray-400 transition hover:border-gray-600 hover:text-white sm:p-2.5"
-                aria-label="Scroll schedule left"
-              >
-                <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
-              </button>
-              <button
-                type="button"
-                onClick={() => scroll('right')}
-                className="rounded-lg border border-gray-700/80 bg-pitch-950/90 p-2 text-gray-400 transition hover:border-gray-600 hover:text-white sm:p-2.5"
-                aria-label="Scroll schedule right"
-              >
-                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
-              </button>
-            </div>
-          </div>
+      {/* ── FILTERS: compact toggles + expandable schedule / cities ─────── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            id="schedule"
+            ref={scheduleSectionRef}
+            onClick={() => setScheduleOpen(o => !o)}
+            aria-expanded={scheduleOpen}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+              scheduleOpen || activeMatchNumber != null
+                ? 'border-emerald-500/50 bg-emerald-950/50 text-emerald-100 ring-1 ring-emerald-500/30'
+                : 'border-gray-700/80 bg-pitch-800/80 text-gray-300 hover:border-gray-600 hover:text-white'
+            }`}
+          >
+            <Calendar className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+            <span>{tr.filterScheduleBtn}</span>
+            {activeMatchNumber != null && !scheduleOpen ? (
+              <span className="rounded bg-gold-500/20 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-gold-200">
+                #{activeMatchNumber}
+              </span>
+            ) : null}
+            <ChevronDown
+              className={`h-3.5 w-3.5 shrink-0 transition-transform ${scheduleOpen ? 'rotate-180' : ''}`}
+              aria-hidden
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => setCitiesOpen(o => !o)}
+            aria-expanded={citiesOpen}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+              citiesOpen || (activeCity != null && activeMatchNumber == null)
+                ? 'border-grass-500/50 bg-grass-950/40 text-grass-100 ring-1 ring-grass-500/30'
+                : 'border-gray-700/80 bg-pitch-800/80 text-gray-300 hover:border-gray-600 hover:text-white'
+            }`}
+          >
+            <MapPin className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+            <span>{tr.filterCitiesBtn}</span>
+            {activeCity && activeMatchNumber == null && !citiesOpen ? (
+              <span className="max-w-[5.5rem] truncate text-[10px] font-bold text-grass-200">{activeCity}</span>
+            ) : null}
+            <ChevronDown
+              className={`h-3.5 w-3.5 shrink-0 transition-transform ${citiesOpen ? 'rotate-180' : ''}`}
+              aria-hidden
+            />
+          </button>
+          {(activeCity || activeMatchNumber != null) && (
+            <button
+              type="button"
+              onClick={clearListingFilters}
+              className="rounded-lg border border-grass-600/40 px-2.5 py-2 text-xs font-medium text-grass-400 transition hover:text-grass-300 sm:text-sm"
+            >
+              {tr.clearFilter}
+            </button>
+          )}
+        </div>
 
-          <div className="-mx-4 sm:-mx-6">
+        {scheduleOpen ? (
+          <div className="scroll-mt-[72px] mt-3 rounded-xl border border-grass-700/25 bg-pitch-800/60 p-3 sm:p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-[11px] text-gray-500 sm:text-xs">
+                {tr.scheduleFullRange}
+                {import.meta.env.DEV && <span className="ml-1 text-cyan-500/90">· grid UI</span>}
+              </p>
+              <div className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  onClick={() => scroll('left')}
+                  className="rounded-lg border border-gray-700/80 bg-pitch-950/90 p-1.5 text-gray-400 hover:text-white"
+                  aria-label="Scroll schedule left"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scroll('right')}
+                  className="rounded-lg border border-gray-700/80 bg-pitch-950/90 p-1.5 text-gray-400 hover:text-white"
+                  aria-label="Scroll schedule right"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          <div className="-mx-3 sm:-mx-4">
             <div
               ref={scheduleRef}
               className="scrollbar-hide flex gap-2 overflow-x-auto scroll-smooth pb-2 pt-1 pl-4 pr-4 snap-x snap-mandatory sm:gap-2.5 sm:pl-6 sm:pr-6 [-webkit-overflow-scrolling:touch]"
@@ -648,58 +647,42 @@ export default function App() {
               )}
             </>
           )}
-        </div>
-      </section>
-
-      {/* ── HOST CITIES ─────────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="mb-6">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="text-2xl font-bold text-white">{tr.citiesTitle}</h3>
-              <p className="text-gray-400 text-sm mt-1">{tr.citiesDesc}</p>
-            </div>
-            <div className="flex items-center gap-2 self-start shrink-0">
-              <button
-                type="button"
-                onClick={() => scrollHostCities('left')}
-                className="p-2 rounded-lg bg-pitch-700 border border-gray-700 hover:border-grass-600 text-gray-400 hover:text-grass-400 transition-colors"
-                aria-label="Scroll cities left"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollHostCities('right')}
-                className="p-2 rounded-lg bg-pitch-700 border border-gray-700 hover:border-grass-600 text-gray-400 hover:text-grass-400 transition-colors"
-                aria-label="Scroll cities right"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
           </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <p className="text-[11px] text-gray-500">
-              {lang === 'es'
-                ? 'Desliza horizontalmente para ver más ciudades.'
-                : lang === 'pt'
-                ? 'Deslize horizontalmente para ver mais cidades.'
-                : 'Swipe left/right to view more cities.'}
-            </p>
-            {(activeCity || activeMatchNumber != null) && (
-              <button
-                type="button"
-                onClick={clearListingFilters}
-                className="text-sm text-grass-400 hover:text-grass-300 border border-grass-600/40 hover:border-grass-500 rounded-lg px-3 py-1.5 transition-colors"
-              >
-                {tr.clearFilter}
-              </button>
-            )}
-          </div>
-        </div>
+        ) : null}
 
-        <div className="-mx-4 sm:-mx-6">
-        <div ref={hostCitiesRef} className="overflow-x-auto pb-2 scroll-smooth pl-4 pr-4 sm:pl-6 sm:pr-6 [-webkit-overflow-scrolling:touch]">
+        {citiesOpen ? (
+          <div className="mt-3 rounded-xl border border-grass-700/25 bg-pitch-800/40 p-3 sm:p-4">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-[11px] text-gray-500 sm:text-xs">{tr.citiesDesc}</p>
+              <div className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  onClick={() => scrollHostCities('left')}
+                  className="rounded-lg border border-gray-700 bg-pitch-700 p-1.5 text-gray-400 hover:text-grass-400"
+                  aria-label="Scroll cities left"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollHostCities('right')}
+                  className="rounded-lg border border-gray-700 bg-pitch-700 p-1.5 text-gray-400 hover:text-grass-400"
+                  aria-label="Scroll cities right"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+        <p className="mb-2 text-[11px] text-gray-600">
+          {lang === 'es'
+            ? 'Desliza horizontalmente para ver más ciudades.'
+            : lang === 'pt'
+            ? 'Deslize horizontalmente para ver mais cidades.'
+            : 'Swipe left/right to view more cities.'}
+        </p>
+
+        <div className="-mx-3 sm:-mx-4">
+        <div ref={hostCitiesRef} className="overflow-x-auto pb-2 scroll-smooth [-webkit-overflow-scrolling:touch]">
           <div className="grid min-w-max grid-flow-col grid-rows-2 auto-cols-[7.5rem] gap-2 sm:auto-cols-[8.5rem] sm:gap-3">
             {cities.map(city => {
               const isActive =
@@ -712,6 +695,7 @@ export default function App() {
                   onClick={() => {
                     setActiveMatchNumber(null);
                     setActiveCity(isActive ? null : city.name);
+                    setCitiesOpen(false);
                     setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
                   }}
                   className={`relative group rounded-xl overflow-hidden aspect-square transition-all duration-300 ${
@@ -743,50 +727,31 @@ export default function App() {
           </div>
         </div>
         </div>
-      </section>
+          </div>
+        ) : null}
+      </div>
 
       {/* ── LISTINGS ──────────────────────────────────────────────────── */}
-      <section ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
-        <div className="flex items-center justify-between gap-3 mb-6">
-          <h3 className="text-2xl font-bold text-white">
-            {activeMatch && activeMatchNumber != null ? (
-              <>
-                <span className="text-grass-400">
-                  {tr.listingsFilteredMatch(
+      <section ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-3">
+        {(activeMatchNumber != null || activeCity) && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-grass-400">
+              {activeMatch && activeMatchNumber != null
+                ? tr.listingsFilteredMatch(
                     activeMatchNumber,
                     activeMatch.homeTeam,
                     activeMatch.awayTeam,
-                  )}
-                </span>
-                <span className="text-gray-400 text-base font-normal ml-2">{tr.listingsSuffix}</span>
-              </>
-            ) : activeCity ? (
-              <>
-                <span className="text-grass-400">{tr.listingsFilteredCity(activeCity)}</span>
-                <span className="text-gray-400 text-base font-normal ml-2">{tr.listingsSuffix}</span>
-              </>
-            ) : (
-              tr.listingsTitle
-            )}
-          </h3>
-          <div className="flex items-center gap-2 shrink-0">
-            {(activeCity || activeMatchNumber != null) && (
-              <button
-                type="button"
-                onClick={clearListingFilters}
-                className="text-sm text-grass-400 hover:text-grass-300 border border-grass-600/40 hover:border-grass-500 rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap"
-              >
-                {tr.clearFilter}
-              </button>
-            )}
+                  )
+                : activeCity}
+            </p>
             {activeCity && highDemandCities.has(activeCity) && (
-              <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-1.5">
-                <Flame className="w-3.5 h-3.5 text-red-400" />
-                <span className="text-xs text-red-400 font-semibold">{tr.highDemand}</span>
+              <div className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1">
+                <Flame className="h-3.5 w-3.5 text-red-400" />
+                <span className="text-xs font-semibold text-red-400">{tr.highDemand}</span>
               </div>
             )}
           </div>
-        </div>
+        )}
 
         {/* Tabs */}
         <div className="sticky top-[56px] z-40 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-pitch-900/95 backdrop-blur-xl border-b border-gray-800/60 mb-6">
