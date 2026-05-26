@@ -3,18 +3,38 @@ import type { TicketWallPost } from './ticketPosts';
 
 const TICKET_PARAM = 'ticket';
 
+const DEFAULT_SHARE_ORIGIN = 'https://okcopa.com';
+
+/** Public ticket links must use production origin (Facebook rejects localhost). */
+export function ticketShareOrigin(): string {
+  const fromEnv = import.meta.env.VITE_SITE_ORIGIN?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  if (typeof window !== 'undefined') {
+    const { origin } = window.location;
+    if (!/^(localhost|127\.)/i.test(window.location.hostname)) {
+      return origin;
+    }
+  }
+  return DEFAULT_SHARE_ORIGIN;
+}
+
 export function getTicketIdFromUrl(url: URL = new URL(window.location.href)): string | null {
   const id = url.searchParams.get(TICKET_PARAM)?.trim();
   return id || null;
 }
 
 export function buildTicketShareUrl(post: TicketWallPost, baseUrl?: string): string {
-  const url = new URL(baseUrl ?? window.location.href);
+  const url = new URL(baseUrl ?? `${ticketShareOrigin()}/tickets`);
   url.pathname = '/tickets';
   url.search = '';
   url.hash = '';
   url.searchParams.set(TICKET_PARAM, post.id);
   return url.toString();
+}
+
+export function buildFacebookShareUrl(post: TicketWallPost): string {
+  const page = buildTicketShareUrl(post);
+  return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(page)}`;
 }
 
 export function clearTicketShareFromUrl(): void {
@@ -41,13 +61,19 @@ export function buildTicketShareMessage(post: TicketWallPost, tr: Translations, 
 }
 
 export async function shareTicketPost(post: TicketWallPost, tr: Translations): Promise<'shared' | 'copied'> {
-  const message = buildTicketShareMessage(post, tr);
+  const pageUrl = buildTicketShareUrl(post);
   const title = ticketShareTitle(post, tr);
+  const text = ticketShareText(post, tr);
+  const message = `${pageUrl}\n\n${text}`;
 
   if (typeof navigator.share === 'function') {
+    // Facebook ignores URL embedded in `text` — pass `url` separately (OG card = preview).
+    const shareData: ShareData = { title, text, url: pageUrl };
     try {
-      await navigator.share({ title, text: message });
-      return 'shared';
+      if (!navigator.canShare || navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+        return 'shared';
+      }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return 'copied';
     }

@@ -509,6 +509,7 @@ export function TicketPostGrid({
   lang,
   activeCity = null,
   activeMatchNumber = null,
+  activeNation = null,
   highlightPostId = null,
   shareLinkLoading = false,
 }: {
@@ -517,12 +518,13 @@ export function TicketPostGrid({
   lang: Lang;
   activeCity?: string | null;
   activeMatchNumber?: number | null;
+  activeNation?: string | null;
   highlightPostId?: string | null;
   shareLinkLoading?: boolean;
 }) {
   const visible = useMemo(
-    () => filterSellPosts(posts, { activeCity, activeMatchNumber }),
-    [posts, activeCity, activeMatchNumber],
+    () => filterSellPosts(posts, { activeCity, activeMatchNumber, activeNation }),
+    [posts, activeCity, activeMatchNumber, activeNation],
   );
 
   if (shareLinkLoading) {

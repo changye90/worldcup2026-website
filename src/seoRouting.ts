@@ -41,6 +41,7 @@ export interface UrlAppState {
   tab: ListingTab;
   city: string | null;
   match: number | null;
+  team: string | null;
   ticket: string | null;
   scrollToGuides: boolean;
 }
@@ -57,10 +58,12 @@ export function readUrlAppState(url: URL = new URL(window.location.href)): UrlAp
   const match =
     matchRaw && /^\d+$/.test(matchRaw) ? Number.parseInt(matchRaw, 10) : null;
   const ticket = url.searchParams.get('ticket')?.trim() || null;
+  const team = url.searchParams.get('team')?.trim() || null;
   return {
     tab: ticket ? 'tickets' : tab,
     city,
     match,
+    team,
     ticket,
     scrollToGuides: path === '/guides',
   };
@@ -70,6 +73,7 @@ export function buildAppUrl(opts: {
   tab: ListingTab;
   city?: string | null;
   match?: number | null;
+  team?: string | null;
   ticketId?: string | null;
   guides?: boolean;
   origin?: string;
@@ -80,6 +84,7 @@ export function buildAppUrl(opts: {
   url.hash = '';
   if (opts.city) url.searchParams.set('city', opts.city);
   if (opts.match != null) url.searchParams.set('match', String(opts.match));
+  if (opts.team) url.searchParams.set('team', opts.team);
   if (opts.ticketId) url.searchParams.set('ticket', opts.ticketId);
   return url.toString();
 }

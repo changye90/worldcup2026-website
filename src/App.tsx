@@ -3,7 +3,7 @@ import {
   MapPin, ChevronLeft, ChevronRight, Bed, Car, Building2,
   Zap, Calendar, Phone, Clock,
   Flame, ChevronDown, Check, Ticket,
-  BarChart3, Tag, Plus,
+  BarChart3, Tag, Plus, Globe,
 } from 'lucide-react';
 import {
   matches,
@@ -28,6 +28,7 @@ import { TicketSeoGuides } from './TicketSeoGuides.tsx';
 import { useAppRouting } from './useAppRouting';
 import { readUrlAppState } from './seoRouting';
 import { findMatchByNumber, filterSellPosts } from './sellPostResolve';
+import { matchInvolvesNation, scheduleNationOptions } from './matchNationFilter';
 import { getTicketIdFromUrl } from './ticketShare';
 import { HeroCountdown } from './HeroCountdown';
 import type { TicketWallKind } from './ticketPosts';
@@ -129,29 +130,36 @@ function formatSchedulePill(iso: string) {
 export default function App() {
   const [lang, setLang] = useState<Lang>('en');
   const initialUrl = readUrlAppState();
+  const nationOptions = useMemo(() => scheduleNationOptions(), []);
   const initialMatchRow =
     initialUrl.match != null ? findMatchByNumber(initialUrl.match) : undefined;
+  const initialNation =
+    initialUrl.team && nationOptions.some(o => o.name === initialUrl.team) ? initialUrl.team : null;
   const [activeCity, setActiveCity] = useState<string | null>(
     initialUrl.city ?? initialMatchRow?.city ?? null,
   );
   const [activeMatchNumber, setActiveMatchNumber] = useState<number | null>(
     initialMatchRow ? initialUrl.match : null,
   );
+  const [activeNation, setActiveNation] = useState<string | null>(initialNation);
   const [activeTab, setActiveTab] = useState<Tab>(initialUrl.tab);
   const [postModal, setPostModal] = useState<TicketWallKind | null>(null);
   const listingsRef = useRef<HTMLElement>(null);
   const clearListingFilters = () => {
     setActiveCity(null);
     setActiveMatchNumber(null);
+    setActiveNation(null);
   };
   const { navigateToTab } = useAppRouting(
     lang,
     activeTab,
     activeCity,
     activeMatchNumber,
+    activeNation,
     setActiveTab,
     setActiveCity,
     setActiveMatchNumber,
+    setActiveNation,
   );
   const deepLinkTicketId = useMemo(() => initialUrl.ticket ?? getTicketIdFromUrl(), []);
   const { handlePost, sellPosts, highlightPostId, shareLinkLoading } = useTicketWall(lang, {
@@ -170,15 +178,21 @@ export default function App() {
   }, [deepLinkTicketId]);
   const activeMatch = activeMatchNumber != null ? findMatchByNumber(activeMatchNumber) : undefined;
   const filteredSellPosts = useMemo(
-    () => filterSellPosts(sellPosts, { activeCity, activeMatchNumber }),
-    [sellPosts, activeCity, activeMatchNumber],
+    () => filterSellPosts(sellPosts, { activeCity, activeMatchNumber, activeNation }),
+    [sellPosts, activeCity, activeMatchNumber, activeNation],
   );
+  const nationMatchCount = useMemo(() => {
+    if (!activeNation) return 0;
+    return matches.filter(m => matchInvolvesNation(m, activeNation)).length;
+  }, [activeNation]);
   const [scheduleExpandedDate, setScheduleExpandedDate] = useState<string | null>(() => {
     const dates = [...new Set(matches.map(m => m.date))].sort();
     return dates[0] ?? null;
   });
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [citiesOpen, setCitiesOpen] = useState(false);
+  const [nationOpen, setNationOpen] = useState(false);
+  const [nationSearch, setNationSearch] = useState('');
   const [navSolid, setNavSolid] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [carsExpanded, setCarsExpanded] = useState(false);
@@ -204,7 +218,7 @@ export default function App() {
   useEffect(() => {
     setCarsExpanded(false);
     setHotelsExpanded(false);
-  }, [activeCity, activeMatchNumber]);
+  }, [activeCity, activeMatchNumber, activeNation]);
 
   // Close lang dropdown on outside click
   useEffect(() => {
@@ -224,7 +238,16 @@ export default function App() {
     hostCitiesRef.current?.scrollBy({ left: dir === 'left' ? -320 : 320, behavior: 'smooth' });
   };
 
-  const matchesForDate = (date: string) => matches.filter(m => m.date === date);
+  const matchesForDate = (date: string) => {
+    const list = matches.filter(m => m.date === date);
+    if (!activeNation) return list;
+    return list.filter(m => matchInvolvesNation(m, activeNation));
+  };
+  const filteredNationOptions = useMemo(() => {
+    const q = nationSearch.trim().toLowerCase();
+    if (!q) return nationOptions;
+    return nationOptions.filter(o => o.name.toLowerCase().includes(q));
+  }, [nationOptions, nationSearch]);
   const expandedMatches = scheduleExpandedDate
     ? matchesForDate(scheduleExpandedDate).slice().sort((a, b) => a.kickoffTime.localeCompare(b.kickoffTime))
     : [];
@@ -262,6 +285,7 @@ export default function App() {
     } else {
       setActiveMatchNumber(match.matchNumber);
       setActiveCity(match.city);
+      setActiveNation(null);
     }
     setScheduleOpen(false);
     setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
@@ -439,10 +463,13 @@ export default function App() {
             type="button"
             id="schedule"
             ref={scheduleSectionRef}
-            onClick={() => setScheduleOpen(o => !o)}
+            onClick={() => {
+              setScheduleOpen(o => !o);
+              if (!scheduleOpen) setNationOpen(false);
+            }}
             aria-expanded={scheduleOpen}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition sm:text-sm ${
-              scheduleOpen || activeMatchNumber != null
+              scheduleOpen || activeMatchNumber != null || activeNation
                 ? 'border-emerald-500/50 bg-emerald-950/50 text-emerald-100 ring-1 ring-emerald-500/30'
                 : 'border-gray-700/80 bg-pitch-800/80 text-gray-300 hover:border-gray-600 hover:text-white'
             }`}
@@ -461,7 +488,10 @@ export default function App() {
           </button>
           <button
             type="button"
-            onClick={() => setCitiesOpen(o => !o)}
+            onClick={() => {
+              setCitiesOpen(o => !o);
+              if (!citiesOpen) setNationOpen(false);
+            }}
             aria-expanded={citiesOpen}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition sm:text-sm ${
               citiesOpen || (activeCity != null && activeMatchNumber == null)
@@ -479,7 +509,35 @@ export default function App() {
               aria-hidden
             />
           </button>
-          {(activeCity || activeMatchNumber != null) && (
+          <button
+            type="button"
+            onClick={() => {
+              setNationOpen(o => !o);
+              if (!nationOpen) {
+                setCitiesOpen(false);
+                setScheduleOpen(false);
+              }
+            }}
+            aria-expanded={nationOpen}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition sm:text-sm ${
+              nationOpen || activeNation
+                ? 'border-sky-500/50 bg-sky-950/50 text-sky-100 ring-1 ring-sky-500/30'
+                : 'border-gray-700/80 bg-pitch-800/80 text-gray-300 hover:border-gray-600 hover:text-white'
+            }`}
+          >
+            <Globe className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
+            <span>{tr.filterNationBtn}</span>
+            {activeNation && !nationOpen ? (
+              <span className="max-w-[5.5rem] truncate text-[10px] font-bold text-sky-200">
+                {activeNation}
+              </span>
+            ) : null}
+            <ChevronDown
+              className={`h-3.5 w-3.5 shrink-0 transition-transform ${nationOpen ? 'rotate-180' : ''}`}
+              aria-hidden
+            />
+          </button>
+          {(activeCity || activeMatchNumber != null || activeNation) && (
             <button
               type="button"
               onClick={clearListingFilters}
@@ -489,6 +547,67 @@ export default function App() {
             </button>
           )}
         </div>
+
+        {nationOpen ? (
+          <div className="mt-3 rounded-xl border border-sky-700/25 bg-pitch-800/60 p-3 sm:p-4">
+            <p className="mb-3 text-[11px] text-gray-500 sm:text-xs">{tr.filterNationHint}</p>
+            <input
+              type="search"
+              value={nationSearch}
+              onChange={e => setNationSearch(e.target.value)}
+              placeholder={tr.filterNationSearch}
+              className="mb-3 w-full rounded-lg border border-gray-700/80 bg-pitch-950/90 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-sky-500/50 focus:outline-none"
+            />
+            <div className="max-h-[min(42vh,320px)] overflow-y-auto pr-1">
+              <div className="flex flex-wrap gap-2">
+                {filteredNationOptions.map(opt => {
+                  const isActive = activeNation === opt.name;
+                  return (
+                    <button
+                      key={opt.name}
+                      type="button"
+                      onClick={() => {
+                        if (isActive) {
+                          setActiveNation(null);
+                        } else {
+                          setActiveNation(opt.name);
+                          setActiveCity(null);
+                          setActiveMatchNumber(null);
+                          setScheduleOpen(true);
+                          const firstDate = scheduleDates.find(d =>
+                            matches.some(m => m.date === d && matchInvolvesNation(m, opt.name)),
+                          );
+                          if (firstDate) setScheduleExpandedDate(firstDate);
+                          setNationOpen(false);
+                          setTimeout(
+                            () => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                            100,
+                          );
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left text-xs font-semibold transition sm:text-sm ${
+                        isActive
+                          ? 'border-sky-400/60 bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/40'
+                          : 'border-gray-700/80 bg-pitch-900/80 text-gray-200 hover:border-sky-600/40 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-base leading-none" aria-hidden>
+                        {opt.flag}
+                      </span>
+                      <span>{opt.name}</span>
+                      <span className="text-[10px] font-normal tabular-nums text-gray-500">
+                        {tr.filterNationMatchCount(opt.matchCount)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {filteredNationOptions.length === 0 ? (
+                <p className="py-6 text-center text-sm text-gray-500">{tr.formMatchFilterNoResults}</p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         {scheduleOpen ? (
           <div className="scroll-mt-[72px] mt-3 rounded-xl border border-grass-700/25 bg-pitch-800/60 p-3 sm:p-4">
@@ -699,6 +818,7 @@ export default function App() {
                   type="button"
                   onClick={() => {
                     setActiveMatchNumber(null);
+                    setActiveNation(null);
                     setActiveCity(isActive ? null : city.name);
                     setCitiesOpen(false);
                     setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
@@ -738,7 +858,7 @@ export default function App() {
 
       {/* ── LISTINGS ──────────────────────────────────────────────────── */}
       <section ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-3">
-        {(activeMatchNumber != null || activeCity) && (
+        {(activeMatchNumber != null || activeCity || activeNation) && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-semibold text-grass-400">
               {activeMatch && activeMatchNumber != null
@@ -747,7 +867,9 @@ export default function App() {
                     activeMatch.homeTeam,
                     activeMatch.awayTeam,
                   )
-                : activeCity}
+                : activeNation
+                  ? tr.listingsFilteredNation(activeNation, nationMatchCount)
+                  : activeCity}
             </p>
             {activeCity && highDemandCities.has(activeCity) && (
               <div className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1">
@@ -818,6 +940,7 @@ export default function App() {
               lang={lang}
               activeCity={activeCity}
               activeMatchNumber={activeMatchNumber}
+              activeNation={activeNation}
               highlightPostId={highlightPostId}
               shareLinkLoading={shareLinkLoading}
             />

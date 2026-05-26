@@ -10,9 +10,11 @@ export function useAppRouting(
   activeTab: ListingTab,
   activeCity: string | null,
   activeMatchNumber: number | null,
+  activeNation: string | null,
   setActiveTab: (tab: ListingTab) => void,
   setActiveCity: (city: string | null) => void,
   setActiveMatchNumber: (match: number | null) => void,
+  setActiveNation: (nation: string | null) => void,
 ) {
   const skipUrlSync = useRef(false);
   const booted = useRef(false);
@@ -60,6 +62,7 @@ export function useAppRouting(
       tab: activeTab,
       city: activeCity,
       match: activeMatchNumber,
+      team: activeNation,
       ticketId: ticket,
     });
     const target = new URL(next);
@@ -68,7 +71,7 @@ export function useAppRouting(
     if (currentStr !== targetStr) {
       window.history.replaceState(window.history.state, '', targetStr);
     }
-  }, [activeTab, activeCity, activeMatchNumber]);
+  }, [activeTab, activeCity, activeMatchNumber, activeNation]);
 
   useEffect(() => {
     const onPop = () => {
@@ -77,6 +80,7 @@ export function useAppRouting(
       setActiveTab(state.tab);
       setActiveCity(state.city);
       setActiveMatchNumber(state.match);
+      setActiveNation(state.team);
       applyPageSeo(lang, { tab: state.tab, city: state.city });
       skipUrlSync.current = false;
       if (state.scrollToGuides) {
@@ -85,15 +89,17 @@ export function useAppRouting(
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, [lang, setActiveTab, setActiveCity, setActiveMatchNumber]);
+  }, [lang, setActiveTab, setActiveCity, setActiveMatchNumber, setActiveNation]);
 
   const navigateToTab = useCallback(
     (tab: ListingTab) => {
-      const url = new URL(buildAppUrl({ tab, city: activeCity, match: activeMatchNumber }));
+      const url = new URL(
+        buildAppUrl({ tab, city: activeCity, match: activeMatchNumber, team: activeNation }),
+      );
       window.history.pushState(null, '', `${url.pathname}${url.search}`);
       setActiveTab(tab);
     },
-    [activeCity, activeMatchNumber, setActiveTab],
+    [activeCity, activeMatchNumber, activeNation, setActiveTab],
   );
 
   return { navigateToTab };

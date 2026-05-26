@@ -128,6 +128,14 @@ function stackTextRows(rows: TextRow[], bottomBaseline: number): { svg: string[]
   return { svg, top: baseline };
 }
 
+/** Badge pill width from label length (Inter 800 caps + letter-spacing). */
+function badgePillWidth(label: string, fontSize: number, letterSpacing: number): number {
+  const t = label.toUpperCase();
+  const glyphW = fontSize * 0.64;
+  const textW = t.length * glyphW + Math.max(0, t.length - 1) * letterSpacing;
+  return Math.min(560, Math.ceil(textW + fontSize * 1.75));
+}
+
 export function buildCardSvg(card: OgCardContent): string {
   const isSell = card.badge.includes('SALE');
   const accent = isSell ? '#fbbf24' : '#38bdf8';
@@ -145,7 +153,9 @@ export function buildCardSvg(card: OgCardContent): string {
     : `<rect width="${W}" height="${H}" fill="#1a3d2e"/>`;
 
   const badgeFont = 36;
-  const badgePadX = Math.min(480, Math.max(320, badge.length * 18));
+  const badgeLetterSpacing = 1.5;
+  const badgePadX = badgePillWidth(badge, badgeFont, badgeLetterSpacing);
+  const badgeH = 54;
   const badgeY = 108;
   const matchupY = 228;
   const footerBaseline = 602;
@@ -182,8 +192,8 @@ export function buildCardSvg(card: OgCardContent): string {
   }
 
   const textLines: string[] = [
-    `<rect x="${CX - badgePadX / 2}" y="${badgeY - 36}" width="${badgePadX}" height="56" rx="14" fill="${accentSoft}"/>`,
-    `<text x="${CX}" y="${badgeY}" text-anchor="middle" fill="${accent}" font-family="Inter, sans-serif" font-size="${badgeFont}" font-weight="800" letter-spacing="1">${escapeXml(badge)}</text>`,
+    `<rect x="${CX - badgePadX / 2}" y="${badgeY - badgeH + 14}" width="${badgePadX}" height="${badgeH}" rx="14" fill="${accentSoft}"/>`,
+    `<text x="${CX}" y="${badgeY}" text-anchor="middle" fill="${accent}" font-family="Inter, sans-serif" font-size="${badgeFont}" font-weight="800" letter-spacing="${badgeLetterSpacing}">${escapeXml(badge)}</text>`,
     ...stacked.svg,
     `<text x="${CX}" y="${footerBaseline}" text-anchor="middle" fill="#9cb8a8" font-family="Inter, sans-serif" font-size="${footerSize}" font-weight="700">okcopa.com</text>`,
   ];

@@ -6,6 +6,7 @@ import type { TicketWallPost } from './ticketPosts';
 import type { TicketBuyPayload, TicketSellPayload } from './ticketPostForm';
 import type { TicketWallKind } from './ticketPosts';
 import { whatsappDigits } from './ticketPostForm';
+import { matchInvolvesNation } from './matchNationFilter';
 
 const MATCH_NUM_RE = /Match\s+(\d+)/i;
 
@@ -78,12 +79,29 @@ export function sellPostPassesMatchFilter(post: TicketWallPost, matchNumber: num
   return extractMatchNumbersFromSellPost(post).includes(matchNumber);
 }
 
+/** Posts for matches where the nation plays (home or away). */
+export function sellPostPassesNationFilter(post: TicketWallPost, nation: string | null): boolean {
+  if (post.kind !== 'sell') return true;
+  if (!nation) return true;
+  return extractMatchNumbersFromSellPost(post).some(num => {
+    const m = findMatchByNumber(num);
+    return m != null && matchInvolvesNation(m, nation);
+  });
+}
+
 export function filterSellPosts(
   posts: TicketWallPost[],
-  opts: { activeCity: string | null; activeMatchNumber: number | null },
+  opts: {
+    activeCity: string | null;
+    activeMatchNumber: number | null;
+    activeNation?: string | null;
+  },
 ): TicketWallPost[] {
   if (opts.activeMatchNumber != null) {
     return posts.filter(p => sellPostPassesMatchFilter(p, opts.activeMatchNumber));
+  }
+  if (opts.activeNation) {
+    return posts.filter(p => sellPostPassesNationFilter(p, opts.activeNation));
   }
   if (opts.activeCity) {
     return posts.filter(p => sellPostPassesCityFilter(p, opts.activeCity));
