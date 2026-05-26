@@ -29,6 +29,7 @@ import { useAppRouting } from './useAppRouting';
 import { readUrlAppState } from './seoRouting';
 import { findMatchByNumber, filterSellPosts } from './sellPostResolve';
 import { getTicketIdFromUrl } from './ticketShare';
+import { HeroCountdown } from './HeroCountdown';
 import type { TicketWallKind } from './ticketPosts';
 
 /** Hero background — place `hero.png` in `public/`. */
@@ -369,8 +370,8 @@ export default function App() {
           <div className="absolute inset-0 bg-gradient-to-b from-pitch-900/10 via-transparent to-pitch-900" />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-7xl flex-1 px-4 pb-2 pt-20 sm:px-6 sm:pb-3">
-            <div className="min-w-0">
+        <div className="relative z-10 mx-auto flex max-w-7xl flex-1 flex-col gap-6 px-4 pb-2 pt-20 sm:px-6 sm:pb-3 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+            <div className="min-w-0 flex-1 text-left">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-grass-500/20 bg-grass-500/10 px-3 py-1 text-xs text-grass-400">
                 <Zap className="h-3 w-3" />
                 <span>{tr.heroTag}</span>
@@ -385,14 +386,14 @@ export default function App() {
                 <span className="block text-xs text-gray-500 sm:inline sm:text-sm">{tr.heroSubheadExtras}</span>
               </p>
 
-              <div className="mb-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap">
+              <div className="mb-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:justify-start">
                 <button
                   type="button"
                   onClick={() => {
                     track(AnalyticsEvent.HeroSell);
                     setPostModal('sell');
                   }}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-pitch-900 shadow-xl shadow-black/30 transition hover:bg-gray-100 active:scale-[0.98] sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-bold text-pitch-900 shadow-xl shadow-black/30 transition hover:bg-gray-100 active:scale-[0.98] sm:w-auto lg:justify-start"
                 >
                   <Plus className="h-4 w-4 shrink-0" strokeWidth={2.5} />
                   {tr.heroCtaSell}
@@ -423,6 +424,10 @@ export default function App() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="w-full shrink-0 lg:max-w-[18rem]">
+              <HeroCountdown tr={tr} />
             </div>
         </div>
       </section>
