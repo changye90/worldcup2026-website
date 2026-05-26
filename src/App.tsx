@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import {
   MapPin, ChevronLeft, ChevronRight, Bed, Car, Building2,
   Zap, Calendar, Phone, Clock,
@@ -28,6 +28,7 @@ import { TicketSeoGuides } from './TicketSeoGuides.tsx';
 import { useAppRouting } from './useAppRouting';
 import { readUrlAppState } from './seoRouting';
 import { findMatchByNumber, filterSellPosts } from './sellPostResolve';
+import { getTicketIdFromUrl } from './ticketShare';
 import type { TicketWallKind } from './ticketPosts';
 
 /** Hero background — place `hero.png` in `public/`. */
@@ -151,15 +152,21 @@ export default function App() {
     setActiveCity,
     setActiveMatchNumber,
   );
-  const { handlePost, sellPosts, highlightPostId } = useTicketWall(lang, {
+  const deepLinkTicketId = useMemo(() => initialUrl.ticket ?? getTicketIdFromUrl(), []);
+  const { handlePost, sellPosts, highlightPostId, shareLinkLoading } = useTicketWall(lang, {
     onOpenSharePost: () => {
       navigateToTab('tickets');
       clearListingFilters();
-      window.setTimeout(() => {
-        listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 80);
+      listingsRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
     },
   });
+
+  useLayoutEffect(() => {
+    if (!deepLinkTicketId) return;
+    clearListingFilters();
+    setActiveTab('tickets');
+    listingsRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
+  }, [deepLinkTicketId]);
   const activeMatch = activeMatchNumber != null ? findMatchByNumber(activeMatchNumber) : undefined;
   const filteredSellPosts = useMemo(
     () => filterSellPosts(sellPosts, { activeCity, activeMatchNumber }),
@@ -842,6 +849,7 @@ export default function App() {
               activeCity={activeCity}
               activeMatchNumber={activeMatchNumber}
               highlightPostId={highlightPostId}
+              shareLinkLoading={shareLinkLoading}
             />
           </div>
         )}

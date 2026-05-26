@@ -348,6 +348,15 @@ function TicketSellPostCard({
   );
 }
 
+function resolveSharePost(
+  id: string,
+  userPosts: TicketWallPost[],
+): TicketWallPost | undefined {
+  return [...userPosts, ...loadUserTicketPosts(), ...seedTicketWallPosts].find(
+    p => p.id === id && p.kind === 'sell',
+  );
+}
+
 export function useTicketWall(
   _lang: Lang,
   options?: { onOpenSharePost?: (post: TicketWallPost) => void },
@@ -355,7 +364,9 @@ export function useTicketWall(
   const [userPosts, setUserPosts] = useState<TicketWallPost[]>(() => loadUserTicketPosts());
   const [highlightPostId, setHighlightPostId] = useState<string | null>(null);
   const [pendingShareId, setPendingShareId] = useState<string | null>(() => getTicketIdFromUrl());
+  const [shareLinkLoading, setShareLinkLoading] = useState(() => !!getTicketIdFromUrl());
   const shareResolvedRef = useRef(false);
+  const shareFetchStartedRef = useRef<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -387,43 +398,60 @@ export function useTicketWall(
 
   const openSharedPost = useCallback(
     (post: TicketWallPost) => {
+      mergePost(post);
       setHighlightPostId(post.id);
       options?.onOpenSharePost?.(post);
-      window.setTimeout(() => scrollToTicketPost(post.id), 280);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToTicketPost(post.id, { behavior: 'instant' });
+        });
+      });
       window.setTimeout(() => setHighlightPostId(null), 4500);
     },
-    [options],
+    [mergePost, options],
   );
 
-  useEffect(() => {
-    if (!pendingShareId || shareResolvedRef.current) return;
-
-    const local = [...userPosts, ...seedTicketWallPosts].find(
-      p => p.id === pendingShareId && p.kind === 'sell',
-    );
-    if (local) {
+  const finishShareResolve = useCallback(
+    (post: TicketWallPost) => {
+      if (shareResolvedRef.current) return;
       shareResolvedRef.current = true;
+      setShareLinkLoading(false);
       setPendingShareId(null);
       clearTicketShareFromUrl();
-      openSharedPost(local);
+      openSharedPost(post);
+    },
+    [openSharedPost],
+  );
+
+  /** Prefer cache/wall hit; otherwise one single-row Supabase fetch (not the 200-post list). */
+  useEffect(() => {
+    const id = pendingShareId;
+    if (!id || shareResolvedRef.current) return;
+
+    const cached = resolveSharePost(id, userPosts);
+    if (cached) {
+      finishShareResolve(cached);
       return;
     }
 
+    if (shareFetchStartedRef.current === id) return;
+    shareFetchStartedRef.current = id;
+
     let active = true;
-    void fetchTicketPostById(pendingShareId).then(fetched => {
+    void fetchTicketPostById(id).then(fetched => {
       if (!active || shareResolvedRef.current) return;
-      shareResolvedRef.current = true;
-      setPendingShareId(null);
-      clearTicketShareFromUrl();
       if (fetched?.kind === 'sell') {
-        mergePost(fetched);
-        openSharedPost(fetched);
+        finishShareResolve(fetched);
+        return;
       }
+      setShareLinkLoading(false);
+      setPendingShareId(null);
+      shareFetchStartedRef.current = null;
     });
     return () => {
       active = false;
     };
-  }, [pendingShareId, userPosts, mergePost, openSharedPost]);
+  }, [pendingShareId, userPosts, finishShareResolve]);
 
   const handlePost = useCallback((post: TicketWallPost) => {
     persistUserTicketPost(post);
@@ -444,13 +472,36 @@ export function useTicketWall(
     for (const p of seedTicketWallPosts) {
       if (p.kind === 'sell') byId.set(p.id, p);
     }
-    return sortTicketPostsNewestFirst(Array.from(byId.values()));
-  }, [userPosts]);
+    const list = sortTicketPostsNewestFirst(Array.from(byId.values()));
+    const pinId = highlightPostId ?? pendingShareId;
+    if (!pinId) return list;
+    const pinned = list.find(p => p.id === pinId);
+    if (!pinned) return list;
+    return [pinned, ...list.filter(p => p.id !== pinId)];
+  }, [userPosts, highlightPostId, pendingShareId]);
 
-  return { userPosts, handlePost, sellPosts, highlightPostId };
+  return { userPosts, handlePost, sellPosts, highlightPostId, shareLinkLoading };
 }
 
 export { TicketPostFormModal as TicketPostModal } from './TicketPostFormModal';
+
+function TicketShareLinkSkeleton({ tr }: { tr: Translations }) {
+  return (
+    <div
+      className="mb-5 animate-pulse rounded-2xl border border-gold-500/30 bg-pitch-800/80 p-5"
+      aria-busy="true"
+      aria-label={tr.ticketShareLoading}
+    >
+      <p className="text-xs font-semibold uppercase tracking-wider text-gold-300/90">{tr.ticketShareHighlight}</p>
+      <div className="mt-4 h-8 w-2/5 rounded-lg bg-pitch-700/80" />
+      <div className="mt-4 space-y-2">
+        <div className="h-4 w-full rounded bg-pitch-700/60" />
+        <div className="h-4 w-4/5 rounded bg-pitch-700/60" />
+      </div>
+      <p className="mt-4 text-sm text-gray-500">{tr.ticketShareLoading}</p>
+    </div>
+  );
+}
 
 export function TicketPostGrid({
   posts,
@@ -459,6 +510,7 @@ export function TicketPostGrid({
   activeCity = null,
   activeMatchNumber = null,
   highlightPostId = null,
+  shareLinkLoading = false,
 }: {
   posts: TicketWallPost[];
   tr: Translations;
@@ -466,11 +518,16 @@ export function TicketPostGrid({
   activeCity?: string | null;
   activeMatchNumber?: number | null;
   highlightPostId?: string | null;
+  shareLinkLoading?: boolean;
 }) {
   const visible = useMemo(
     () => filterSellPosts(posts, { activeCity, activeMatchNumber }),
     [posts, activeCity, activeMatchNumber],
   );
+
+  if (shareLinkLoading) {
+    return <TicketShareLinkSkeleton tr={tr} />;
+  }
 
   if (visible.length === 0) {
     return (

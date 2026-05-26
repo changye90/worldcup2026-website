@@ -57,8 +57,14 @@ export async function shareTicketPost(post: TicketWallPost, tr: Translations): P
   return 'copied';
 }
 
-export function scrollToTicketPost(id: string): void {
-  document.getElementById(ticketPostElementId(id))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+export function scrollToTicketPost(
+  id: string,
+  opts?: { behavior?: ScrollBehavior },
+): void {
+  document.getElementById(ticketPostElementId(id))?.scrollIntoView({
+    behavior: opts?.behavior ?? 'smooth',
+    block: 'center',
+  });
 }
 
 export function ticketPostElementId(id: string): string {

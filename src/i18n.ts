@@ -210,6 +210,7 @@ export const t = {
     ticketShareCopied: 'Copied — paste into WhatsApp',
     ticketShareAria: 'Share this listing',
     ticketShareHighlight: 'Shared listing',
+    ticketShareLoading: 'Loading this listing…',
     ticketShareSellBody:
       'I posted a ticket transfer on OKCOPA, a free fan-to-fan hub. Open the link and tap WhatsApp on the listing to message me directly.',
     ticketShareBuyBody:
@@ -429,6 +430,7 @@ export const t = {
     ticketShareCopied: 'Copiado — pega en WhatsApp',
     ticketShareAria: 'Compartir esta publicación',
     ticketShareHighlight: 'Publicación compartida',
+    ticketShareLoading: 'Cargando esta publicación…',
     ticketShareSellBody:
       'Publiqué una transferencia de boletos en OKCOPA, un hub fan a fan gratis. Abre el enlace y toca WhatsApp en el anuncio para escribirme directo.',
     ticketShareBuyBody:
@@ -648,6 +650,7 @@ export const t = {
     ticketShareCopied: 'Copiado — cole no WhatsApp',
     ticketShareAria: 'Compartilhar esta publicação',
     ticketShareHighlight: 'Publicação compartilhada',
+    ticketShareLoading: 'Carregando esta publicação…',
     ticketShareSellBody:
       'Anunciei uma transferência de ingressos na OKCOPA, um hub torcedor a torcedor grátis. Abra o link e toque em WhatsApp no anúncio para falar comigo direto.',
     ticketShareBuyBody:
