@@ -16,7 +16,12 @@ import type { Lang, Translations } from './i18n';
 import {
   seedTicketWallPosts,
   loadUserTicketPosts,
-  loadSharedTicketPosts,
+  loadCachedSharedTicketPosts,
+  persistCachedSharedTicketPosts,
+  mergeTicketWallPosts,
+  prefetchSharedTicketPosts,
+  isTicketWallRemoteEnabled,
+  TICKET_WALL_MAX_POSTS,
   fetchTicketPostById,
   persistSharedTicketPost,
   persistUserTicketPost,
@@ -357,11 +362,21 @@ function resolveSharePost(
   );
 }
 
+function initialWallPosts(): TicketWallPost[] {
+  const local = loadUserTicketPosts();
+  const cached = loadCachedSharedTicketPosts();
+  return mergeTicketWallPosts(local, cached);
+}
+
 export function useTicketWall(
   _lang: Lang,
   options?: { onOpenSharePost?: (post: TicketWallPost) => void },
 ) {
-  const [userPosts, setUserPosts] = useState<TicketWallPost[]>(() => loadUserTicketPosts());
+  const remoteWall = isTicketWallRemoteEnabled();
+  const [userPosts, setUserPosts] = useState<TicketWallPost[]>(initialWallPosts);
+  const [wallLoading, setWallLoading] = useState(
+    () => remoteWall && loadCachedSharedTicketPosts().length === 0,
+  );
   const [highlightPostId, setHighlightPostId] = useState<string | null>(null);
   const [pendingShareId, setPendingShareId] = useState<string | null>(() => getTicketIdFromUrl());
   const [shareLinkLoading, setShareLinkLoading] = useState(() => !!getTicketIdFromUrl());
@@ -369,30 +384,27 @@ export function useTicketWall(
   const shareFetchStartedRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!remoteWall) return;
     let active = true;
     const localPosts = loadUserTicketPosts();
-    const localIds = new Set(localPosts.map(p => p.id));
-    void loadSharedTicketPosts(localIds).then(shared => {
-      if (!active || !shared) return;
-      setUserPosts(() => {
-        const merged = new Map<string, TicketWallPost>();
-        [...localPosts, ...shared].forEach(p => {
-          merged.set(p.id, localIds.has(p.id) ? { ...p, isUser: true } : p);
-        });
-        return sortTicketPostsNewestFirst(Array.from(merged.values())).slice(0, 200);
-      });
+    void prefetchSharedTicketPosts().then(shared => {
+      if (!active) return;
+      setWallLoading(false);
+      if (!shared) return;
+      persistCachedSharedTicketPosts(shared);
+      setUserPosts(mergeTicketWallPosts(localPosts, shared));
     });
     return () => {
       active = false;
     };
-  }, []);
+  }, [remoteWall]);
 
   const mergePost = useCallback((post: TicketWallPost) => {
     setUserPosts(prev => {
       const merged = new Map<string, TicketWallPost>();
       merged.set(post.id, post);
       prev.forEach(p => merged.set(p.id, p));
-      return sortTicketPostsNewestFirst(Array.from(merged.values())).slice(0, 200);
+      return sortTicketPostsNewestFirst(Array.from(merged.values())).slice(0, TICKET_WALL_MAX_POSTS);
     });
   }, []);
 
@@ -454,11 +466,12 @@ export function useTicketWall(
   }, [pendingShareId, userPosts, finishShareResolve]);
 
   const handlePost = useCallback((post: TicketWallPost) => {
+    setWallLoading(false);
     persistUserTicketPost(post);
     setUserPosts(prev => {
       const merged = new Map<string, TicketWallPost>([[post.id, { ...post, isUser: true }]]);
       prev.forEach(p => merged.set(p.id, p));
-      return sortTicketPostsNewestFirst(Array.from(merged.values())).slice(0, 200);
+      return sortTicketPostsNewestFirst(Array.from(merged.values())).slice(0, TICKET_WALL_MAX_POSTS);
     });
     void persistSharedTicketPost(post);
     return post;
@@ -480,10 +493,36 @@ export function useTicketWall(
     return [pinned, ...list.filter(p => p.id !== pinId)];
   }, [userPosts, highlightPostId, pendingShareId]);
 
-  return { userPosts, handlePost, sellPosts, highlightPostId, shareLinkLoading };
+  return { userPosts, handlePost, sellPosts, highlightPostId, shareLinkLoading, wallLoading };
 }
 
 export { TicketPostFormModal as TicketPostModal } from './TicketPostFormModal';
+
+function TicketWallSkeleton({ tr }: { tr: Translations }) {
+  return (
+    <div
+      className="grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3"
+      aria-busy="true"
+      aria-label={tr.ticketWallLoading}
+    >
+      {Array.from({ length: 6 }, (_, i) => (
+        <div
+          key={i}
+          className="animate-pulse rounded-2xl border border-gray-700/50 bg-pitch-800/60 p-5"
+        >
+          <div className="h-4 w-1/3 rounded bg-pitch-700/80" />
+          <div className="mt-4 h-8 w-4/5 rounded-lg bg-pitch-700/70" />
+          <div className="mt-4 space-y-2">
+            <div className="h-3 w-full rounded bg-pitch-700/50" />
+            <div className="h-3 w-5/6 rounded bg-pitch-700/50" />
+          </div>
+          <div className="mt-5 h-10 w-full rounded-xl bg-pitch-700/60" />
+        </div>
+      ))}
+      <p className="col-span-full text-center text-sm text-gray-500">{tr.ticketWallLoading}</p>
+    </div>
+  );
+}
 
 function TicketShareLinkSkeleton({ tr }: { tr: Translations }) {
   return (
@@ -512,6 +551,7 @@ export function TicketPostGrid({
   activeNation = null,
   highlightPostId = null,
   shareLinkLoading = false,
+  wallLoading = false,
 }: {
   posts: TicketWallPost[];
   tr: Translations;
@@ -521,6 +561,7 @@ export function TicketPostGrid({
   activeNation?: string | null;
   highlightPostId?: string | null;
   shareLinkLoading?: boolean;
+  wallLoading?: boolean;
 }) {
   const visible = useMemo(
     () => filterSellPosts(posts, { activeCity, activeMatchNumber, activeNation }),
@@ -529,6 +570,10 @@ export function TicketPostGrid({
 
   if (shareLinkLoading) {
     return <TicketShareLinkSkeleton tr={tr} />;
+  }
+
+  if (wallLoading) {
+    return <TicketWallSkeleton tr={tr} />;
   }
 
   if (visible.length === 0) {

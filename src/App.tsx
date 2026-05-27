@@ -162,7 +162,7 @@ export default function App() {
     setActiveNation,
   );
   const deepLinkTicketId = useMemo(() => initialUrl.ticket ?? getTicketIdFromUrl(), []);
-  const { handlePost, sellPosts, highlightPostId, shareLinkLoading } = useTicketWall(lang, {
+  const { handlePost, sellPosts, highlightPostId, shareLinkLoading, wallLoading } = useTicketWall(lang, {
     onOpenSharePost: () => {
       navigateToTab('tickets');
       clearListingFilters();
@@ -943,6 +943,7 @@ export default function App() {
               activeNation={activeNation}
               highlightPostId={highlightPostId}
               shareLinkLoading={shareLinkLoading}
+              wallLoading={wallLoading}
             />
           </div>
         )}

@@ -20,8 +20,17 @@ export interface TicketWallPost {
 
 /** Bump when clearing the wall so browsers drop old localStorage posts. */
 const STORAGE_KEY = 'okcopa-ticket-wall-v2';
+/** Last successful Supabase wall snapshot — instant first paint on repeat visits. */
+const SHARED_CACHE_KEY = 'okcopa-ticket-wall-shared-v1';
 const SUPABASE_TABLE = 'ticket_wall_posts';
-const SUPABASE_FETCH_LIMIT = 200;
+
+/**
+ * Newest-first cap for Supabase `.limit()` and in-memory wall merge.
+ * (Was 200 — too low once bulk import exceeded that; PostgREST default max is usually 1000.)
+ */
+export const TICKET_WALL_MAX_POSTS = 1000;
+
+let sharedPrefetch: Promise<TicketWallPost[] | null> | null = null;
 
 let supabaseClient: SupabaseClient | null | undefined;
 
@@ -47,6 +56,51 @@ export function sortTicketPostsNewestFirst(posts: TicketWallPost[]): TicketWallP
     if (dt !== 0) return dt;
     return b.id.localeCompare(a.id);
   });
+}
+
+export function isTicketWallRemoteEnabled(): boolean {
+  return getSupabaseClient() != null;
+}
+
+export function loadCachedSharedTicketPosts(): TicketWallPost[] {
+  try {
+    const raw = localStorage.getItem(SHARED_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as { posts?: TicketWallPost[] };
+    const list = Array.isArray(parsed?.posts)
+      ? parsed.posts.filter(p => p.kind === 'buy' || p.kind === 'sell')
+      : [];
+    return sortTicketPostsNewestFirst(list);
+  } catch {
+    return [];
+  }
+}
+
+export function persistCachedSharedTicketPosts(posts: TicketWallPost[]): void {
+  try {
+    localStorage.setItem(
+      SHARED_CACHE_KEY,
+      JSON.stringify({
+        cachedAt: Date.now(),
+        posts: sortTicketPostsNewestFirst(posts).slice(0, TICKET_WALL_MAX_POSTS),
+      }),
+    );
+  } catch {
+    /* quota */
+  }
+}
+
+/** Merge local user posts with shared/cached rows (local wins `isUser`). */
+export function mergeTicketWallPosts(
+  localPosts: TicketWallPost[],
+  sharedPosts: TicketWallPost[],
+): TicketWallPost[] {
+  const localIds = new Set(localPosts.map(p => p.id));
+  const merged = new Map<string, TicketWallPost>();
+  for (const p of [...localPosts, ...sharedPosts]) {
+    merged.set(p.id, localIds.has(p.id) ? { ...p, isUser: true } : p);
+  }
+  return sortTicketPostsNewestFirst(Array.from(merged.values())).slice(0, TICKET_WALL_MAX_POSTS);
 }
 
 export function loadUserTicketPosts(): TicketWallPost[] {
@@ -133,7 +187,7 @@ export async function loadSharedTicketPosts(localIds: Set<string>): Promise<Tick
       .from(SUPABASE_TABLE)
       .select('id, kind, flag, username, summary, detail, created_at_ms, created_at, payload')
       .order('created_at_ms', { ascending: false })
-      .limit(SUPABASE_FETCH_LIMIT);
+      .limit(TICKET_WALL_MAX_POSTS);
     if (error || !Array.isArray(data)) return null;
     return data
       .filter(row => row.kind === 'buy' || row.kind === 'sell')
@@ -141,6 +195,14 @@ export async function loadSharedTicketPosts(localIds: Set<string>): Promise<Tick
   } catch {
     return null;
   }
+}
+
+/** Start Supabase fetch as early as possible (module import / main.tsx). */
+export function prefetchSharedTicketPosts(): Promise<TicketWallPost[] | null> {
+  if (!sharedPrefetch) {
+    sharedPrefetch = loadSharedTicketPosts(new Set());
+  }
+  return sharedPrefetch;
 }
 
 export async function persistSharedTicketPost(post: TicketWallPost): Promise<boolean> {
@@ -166,10 +228,15 @@ export async function persistSharedTicketPost(post: TicketWallPost): Promise<boo
 export function clearUserTicketPosts(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SHARED_CACHE_KEY);
     localStorage.removeItem('okcopa-ticket-wall-v1');
   } catch {
     /* ignore */
   }
+}
+
+if (typeof window !== 'undefined' && isTicketWallRemoteEnabled()) {
+  prefetchSharedTicketPosts();
 }
 
 /** Pull optional leading flag + first token as display name. */
