@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { Lang } from './i18n';
 import { applyPageSeo } from './seoDocument';
+import { trackPageView } from './analytics';
 import { buildAppUrl, readUrlAppState, type ListingTab } from './seoRouting';
 
 const LEGACY_TABS = new Set(['tickets', 'cars', 'hotels', 'odds']);
@@ -82,6 +83,7 @@ export function useAppRouting(
       setActiveMatchNumber(state.match);
       setActiveNation(state.team);
       applyPageSeo(lang, { tab: state.tab, city: state.city });
+      trackPageView({ tab: state.tab, source: 'back', lang });
       skipUrlSync.current = false;
       if (state.scrollToGuides) {
         document.getElementById('ticket-guides')?.scrollIntoView({ behavior: 'smooth', block: 'start' });

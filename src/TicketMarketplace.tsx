@@ -52,6 +52,11 @@ function TicketShareButton({ post, tr }: { post: TicketWallPost; tr: Translation
   const [status, setStatus] = useState<'idle' | 'copied'>('idle');
 
   const onShare = async () => {
+    track(AnalyticsEvent.TicketShare, {
+      post_id: post.id,
+      kind: post.kind,
+      is_user: Boolean(post.isUser),
+    });
     const result = await shareTicketPost(post, tr);
     if (result === 'copied') {
       setStatus('copied');
@@ -328,6 +333,7 @@ function TicketSellPostCard({
                   post_id: post.id,
                   kind: post.kind,
                   is_user: Boolean(post.isUser),
+                  has_wa: true,
                 })
               }
               className="animate-wa-pulse flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.99]"
@@ -410,6 +416,10 @@ export function useTicketWall(
 
   const openSharedPost = useCallback(
     (post: TicketWallPost) => {
+      track(AnalyticsEvent.TicketDeepLink, {
+        post_id: post.id,
+        kind: post.kind,
+      });
       mergePost(post);
       setHighlightPostId(post.id);
       options?.onOpenSharePost?.(post);

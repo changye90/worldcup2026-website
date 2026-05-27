@@ -16,7 +16,7 @@ import {
   type Match,
 } from './data';
 import { t, languages, type Lang, type Translations } from './i18n';
-import { AnalyticsEvent, track, trackPageView } from './analytics';
+import { AnalyticsEvent, setAnalyticsLang, track, trackPageView } from './analytics';
 import { outrightWinnerRows, groupQualifyRows } from './oddsData';
 import {
   useTicketWall,
@@ -146,6 +146,11 @@ export default function App() {
   const [postModal, setPostModal] = useState<TicketWallKind | null>(null);
   const listingsRef = useRef<HTMLElement>(null);
   const clearListingFilters = () => {
+    track(AnalyticsEvent.FilterClear, {
+      had_city: Boolean(activeCity),
+      had_match: activeMatchNumber != null,
+      had_team: Boolean(activeNation),
+    });
     setActiveCity(null);
     setActiveMatchNumber(null);
     setActiveNation(null);
@@ -205,9 +210,17 @@ export default function App() {
   const pageViewBoot = useRef(false);
 
   useEffect(() => {
-    trackPageView({ tab: activeTab, source: pageViewBoot.current ? 'tab' : 'load' });
+    setAnalyticsLang(lang);
+  }, [lang]);
+
+  useEffect(() => {
+    trackPageView({
+      tab: activeTab,
+      lang,
+      source: pageViewBoot.current ? 'tab' : 'load',
+    });
     pageViewBoot.current = true;
-  }, [activeTab]);
+  }, [activeTab, lang]);
 
   useEffect(() => {
     const handler = () => setNavSolid(window.scrollY > 60);
@@ -274,14 +287,18 @@ export default function App() {
     filteredHotels.length > CAR_GRID_PREVIEW;
 
   const filterByScheduleMatch = (match: Match) => {
+    const clearing = activeMatchNumber === match.matchNumber;
     track(AnalyticsEvent.ScheduleMatch, {
       match_id: match.id,
       match_number: match.matchNumber,
       city: match.city,
       date: match.date,
+      action: clearing ? 'clear' : 'select',
     });
-    if (activeMatchNumber === match.matchNumber) {
-      clearListingFilters();
+    if (clearing) {
+      setActiveCity(null);
+      setActiveMatchNumber(null);
+      setActiveNation(null);
     } else {
       setActiveMatchNumber(match.matchNumber);
       setActiveCity(match.city);
@@ -289,6 +306,17 @@ export default function App() {
     }
     setScheduleOpen(false);
     setTimeout(() => listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
+
+  const trackFilterPanelOpen = (panel: 'schedule' | 'cities' | 'nation', opening: boolean) => {
+    if (!opening) return;
+    const ev =
+      panel === 'schedule'
+        ? AnalyticsEvent.FilterScheduleOpen
+        : panel === 'cities'
+          ? AnalyticsEvent.FilterCitiesOpen
+          : AnalyticsEvent.FilterNationOpen;
+    track(ev);
   };
 
   const currentLang = languages.find(l => l.code === lang)!;
@@ -464,7 +492,10 @@ export default function App() {
             id="schedule"
             ref={scheduleSectionRef}
             onClick={() => {
-              setScheduleOpen(o => !o);
+              setScheduleOpen(o => {
+                trackFilterPanelOpen('schedule', !o);
+                return !o;
+              });
               if (!scheduleOpen) setNationOpen(false);
             }}
             aria-expanded={scheduleOpen}
@@ -489,7 +520,10 @@ export default function App() {
           <button
             type="button"
             onClick={() => {
-              setCitiesOpen(o => !o);
+              setCitiesOpen(o => {
+                trackFilterPanelOpen('cities', !o);
+                return !o;
+              });
               if (!citiesOpen) setNationOpen(false);
             }}
             aria-expanded={citiesOpen}
@@ -512,7 +546,10 @@ export default function App() {
           <button
             type="button"
             onClick={() => {
-              setNationOpen(o => !o);
+              setNationOpen(o => {
+                trackFilterPanelOpen('nation', !o);
+                return !o;
+              });
               if (!nationOpen) {
                 setCitiesOpen(false);
                 setScheduleOpen(false);
@@ -568,8 +605,18 @@ export default function App() {
                       type="button"
                       onClick={() => {
                         if (isActive) {
+                          track(AnalyticsEvent.FilterNation, {
+                            nation: opt.name,
+                            action: 'clear',
+                            match_count: opt.matchCount,
+                          });
                           setActiveNation(null);
                         } else {
+                          track(AnalyticsEvent.FilterNation, {
+                            nation: opt.name,
+                            action: 'select',
+                            match_count: opt.matchCount,
+                          });
                           setActiveNation(opt.name);
                           setActiveCity(null);
                           setActiveMatchNumber(null);
@@ -817,6 +864,11 @@ export default function App() {
                   key={city.name}
                   type="button"
                   onClick={() => {
+                    track(AnalyticsEvent.FilterCity, {
+                      city: city.name,
+                      action: isActive ? 'clear' : 'select',
+                      high_demand: isHighDemand,
+                    });
                     setActiveMatchNumber(null);
                     setActiveNation(null);
                     setActiveCity(isActive ? null : city.name);
@@ -966,7 +1018,10 @@ export default function App() {
               <div className="mt-6 flex justify-center">
                 <button
                   type="button"
-                  onClick={() => setHotelsExpanded(true)}
+                  onClick={() => {
+                    track(AnalyticsEvent.ListingExpand, { tab: 'hotels', total: filteredHotels.length });
+                    setHotelsExpanded(true);
+                  }}
                   className="rounded-xl border border-gray-600 bg-pitch-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:border-grass-500 hover:text-grass-300"
                 >
                   {tr.hotelsLoadFull(filteredHotels.length)}
@@ -992,7 +1047,10 @@ export default function App() {
               <div className="mt-6 flex justify-center">
                 <button
                   type="button"
-                  onClick={() => setCarsExpanded(true)}
+                  onClick={() => {
+                    track(AnalyticsEvent.ListingExpand, { tab: 'cars', total: filteredCars.length });
+                    setCarsExpanded(true);
+                  }}
                   className="rounded-xl border border-gray-600 bg-pitch-800 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:border-grass-500 hover:text-grass-300"
                 >
                   {tr.carsLoadFull(filteredCars.length)}
@@ -1011,6 +1069,11 @@ export default function App() {
           tr={tr}
           onClose={() => setPostModal(null)}
           onSubmit={post => {
+            track(AnalyticsEvent.TicketPostSubmit, {
+              kind: post.kind,
+              post_id: post.id,
+              is_user: true,
+            });
             handlePost(post);
             navigateToTab('tickets');
           }}

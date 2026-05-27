@@ -1,5 +1,6 @@
 -- OKcopa site analytics (PV / UV / click events)
 -- Run in Supabase SQL Editor after ticket_wall_posts is set up.
+-- Full event + props dictionary: docs/analytics-dictionary.md
 
 create table if not exists public.site_analytics_events (
   id uuid primary key default gen_random_uuid(),
