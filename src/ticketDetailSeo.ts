@@ -1,5 +1,6 @@
 import type { Lang, Translations } from './i18n';
 import type { TicketBuyPayload } from './ticketPostForm';
+import { formatBudgetDisplay } from './ticketPostForm';
 import type { TicketWallPost } from './ticketPosts';
 import { buildTicketPostPageUrl } from './ticketRouting';
 import {
@@ -26,7 +27,7 @@ export function ticketDetailMatchLabel(post: TicketWallPost, tr: Translations): 
   return head || post.summary;
 }
 
-export function ticketDetailSubhead(post: TicketWallPost, lang: Lang): string | null {
+export function ticketDetailSubhead(post: TicketWallPost, lang: Lang, tr: Translations): string | null {
   if (post.kind === 'sell') {
     const schedule = primaryScheduleMatchForSellPost(post);
     if (!schedule) return null;
@@ -36,7 +37,8 @@ export function ticketDetailSubhead(post: TicketWallPost, lang: Lang): string | 
   }
   if (post.kind === 'buy') {
     const p = post.payload as TicketBuyPayload | undefined;
-    const bits = [p?.quantity, p?.category, p?.budget?.trim()].filter(Boolean);
+    const budget = p?.budget?.trim() ? formatBudgetDisplay(p.budget, tr) : '';
+    const bits = [p?.quantity, p?.category, budget].filter(Boolean);
     return bits.length ? bits.join(' · ') : null;
   }
   return null;
@@ -64,7 +66,7 @@ export function ticketPageSeoMeta(
     if (notes) extras.push(notes.replace(/\s+/g, ' ').slice(0, 120));
   } else {
     const p = post.payload as TicketBuyPayload | undefined;
-    if (p?.budget?.trim()) extras.push(p.budget.trim());
+    if (p?.budget?.trim()) extras.push(formatBudgetDisplay(p.budget, tr));
     if (p?.category) extras.push(p.category);
   }
   const description =
@@ -86,7 +88,7 @@ export function ticketDetailSeoParagraphs(post: TicketWallPost, tr: Translations
     post.kind === 'sell'
       ? tr.ticketDetailSeoLeadSell(match, place)
       : tr.ticketDetailSeoLeadBuy(match);
-  const sub = ticketDetailSubhead(post, lang);
+  const sub = ticketDetailSubhead(post, lang, tr);
   const detailLine = sub ? `${lead} ${sub}.` : lead;
   return [detailLine, tr.ticketDetailSeoPlatform];
 }

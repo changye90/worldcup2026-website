@@ -3,7 +3,7 @@ import { ArrowLeft, Calendar, Check, Clock, MapPin, MessageCircle, Share2, Tag }
 import { AnalyticsEvent, track } from './analytics';
 import type { Lang, Translations } from './i18n';
 import type { TicketBuyPayload, TicketSellPayload } from './ticketPostForm';
-import { formatCategorySeatLine, getWhatsappHref } from './ticketPostForm';
+import { formatBudgetDisplay, formatCategorySeatLine, getWhatsappHref } from './ticketPostForm';
 import {
   formatMatchKickoffDisplay,
   primaryScheduleMatchForSellPost,
@@ -126,7 +126,9 @@ function BuyDetailBody({ post, tr }: { post: TicketWallPost; tr: Translations })
           {p.seatDetails?.trim() ? (
             <DetailRow label={tr.formLabelSeatDetails}>{p.seatDetails.trim()}</DetailRow>
           ) : null}
-          {p.budget?.trim() ? <DetailRow label={tr.formLabelBudget}>{p.budget.trim()}</DetailRow> : null}
+          {p.budget?.trim() ? (
+            <DetailRow label={tr.formLabelBudget}>{formatBudgetDisplay(p.budget, tr)}</DetailRow>
+          ) : null}
         </>
       ) : null}
     </dl>
@@ -240,7 +242,7 @@ export function TicketPostDetailPage({
   const isSell = post?.kind === 'sell';
   const schedule = post && isSell ? primaryScheduleMatchForSellPost(post) : null;
   const heading = post ? ticketDetailMatchLabel(post, tr) : '';
-  const subhead = post ? ticketDetailSubhead(post, lang) : null;
+  const subhead = post ? ticketDetailSubhead(post, lang, tr) : null;
   const waHref = post
     ? getWhatsappHref(post, tr.ticketWhatsappPrefill(whatsappPrefillContext(post)))
     : null;

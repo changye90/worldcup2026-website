@@ -29,7 +29,7 @@ import {
   sortTicketPostsNewestFirst,
 } from './ticketPosts';
 import type { TicketBuyPayload, TicketSellPayload } from './ticketPostForm';
-import { formatCategorySeatLine, getWhatsappHref } from './ticketPostForm';
+import { formatBudgetDisplay, formatCategorySeatLine, getWhatsappHref } from './ticketPostForm';
 import {
   formatMatchKickoffDisplay,
   primaryScheduleMatchForSellPost,
@@ -446,7 +446,9 @@ function TicketBuyPostCard({
               <TicketShareButton post={post} tr={tr} />
             </div>
             {p?.budget?.trim() ? (
-              <p className="shrink-0 text-right text-lg font-extrabold tabular-nums text-sky-300">{p.budget.trim()}</p>
+              <p className="shrink-0 text-right text-lg font-extrabold tabular-nums text-sky-300">
+                {formatBudgetDisplay(p.budget, tr)}
+              </p>
             ) : null}
           </div>
           <p className="mt-3 text-base font-bold leading-snug text-white sm:text-lg">{target}</p>
@@ -470,7 +472,7 @@ function TicketBuyPostCard({
               ) : null}
               {p.budget?.trim() ? (
                 <InfoGridRow icon="💰" label={tr.formLabelBudget}>
-                  {p.budget.trim()}
+                  {formatBudgetDisplay(p.budget, tr)}
                 </InfoGridRow>
               ) : null}
             </>

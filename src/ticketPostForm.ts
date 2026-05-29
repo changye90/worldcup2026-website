@@ -50,11 +50,28 @@ export function buildSellSummary(p: TicketSellPayload): string {
   return parts.join(' · ');
 }
 
+/** Strip Chinese negotiable phrases from budget; store/display Latin text only. */
+export function normalizeBudgetValue(raw: string | undefined): string | undefined {
+  const s = raw?.trim();
+  if (!s) return undefined;
+  if (/^(面议|议价|待定|商议|价格面议|可议|商量)$/i.test(s)) return 'Negotiable';
+  if (/面议|议价|待定/.test(s)) return 'Negotiable';
+  return s;
+}
+
+export function formatBudgetDisplay(raw: string | undefined, tr: Translations): string {
+  const normalized = normalizeBudgetValue(raw);
+  if (!normalized) return '';
+  if (normalized === 'Negotiable') return tr.ticketPriceNegotiableTitle;
+  return normalized;
+}
+
 export function buildBuySummary(p: TicketBuyPayload): string {
   const parts: string[] = [p.targetMatch.trim(), `${p.quantity} ticket${p.quantity !== 1 ? 's' : ''}`];
   if (p.category) parts.push(p.category);
   if (p.seatDetails?.trim()) parts.push(p.seatDetails.trim());
-  if (p.budget?.trim()) parts.push(p.budget.trim());
+  const budget = normalizeBudgetValue(p.budget);
+  if (budget) parts.push(budget === 'Negotiable' ? 'Negotiable' : budget);
   return parts.join(' · ');
 }
 
@@ -83,7 +100,12 @@ export function buildBuyDetailLines(p: TicketBuyPayload, tr: Translations): stri
   ];
   if (p.category) lines.push(`${tr.formLabelCategory}: ${p.category}`);
   if (p.seatDetails?.trim()) lines.push(`${tr.formLabelSeatDetails}: ${p.seatDetails.trim()}`);
-  if (p.budget?.trim()) lines.push(`${tr.formLabelBudget}: ${p.budget.trim()}`);
+  const budget = normalizeBudgetValue(p.budget);
+  if (budget) {
+    lines.push(
+      `${tr.formLabelBudget}: ${budget === 'Negotiable' ? tr.ticketPriceNegotiableTitle : budget}`,
+    );
+  }
   lines.push(`${tr.formLabelWhatsapp}: ${p.whatsapp}`);
   return lines;
 }
@@ -118,17 +140,21 @@ export function createWallPostFromBuy(
   tr: Translations,
 ): TicketWallPost {
   const defaults = defaultPostMeta(lang);
-  const summary = buildBuySummary(payload);
+  const normalized: TicketBuyPayload = {
+    ...payload,
+    budget: normalizeBudgetValue(payload.budget),
+  };
+  const summary = buildBuySummary(normalized);
   return {
     id: `user-${Date.now()}`,
     kind: 'buy',
     flag: defaults.flag,
     username: defaults.username,
     summary,
-    detail: buildBuyDetailLines(payload, tr).join('\n'),
+    detail: buildBuyDetailLines(normalized, tr).join('\n'),
     createdAt: Date.now(),
     isUser: true,
-    payload,
+    payload: normalized,
   };
 }
 

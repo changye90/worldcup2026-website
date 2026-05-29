@@ -278,7 +278,8 @@ function rowToPost(fields, index, matches) {
       quantity,
       category,
       seatDetails,
-      budget: priceType === 'fixed' && priceAmount != null ? `$${priceAmount}` : '面议',
+      budget:
+        priceType === 'fixed' && priceAmount != null ? `$${priceAmount} USD` : 'Negotiable',
       whatsapp,
     };
     return {

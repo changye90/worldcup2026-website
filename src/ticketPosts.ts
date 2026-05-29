@@ -1,4 +1,5 @@
 import type { TicketBuyPayload, TicketSellPayload } from './ticketPostForm';
+import { normalizeBudgetValue } from './ticketPostForm';
 import { primaryMatchFlagsForSellPost } from './sellMatchFlags';
 import { resolveTicketPostFlag } from './teamFlags';
 import { filterVisibleTicketWallPosts, ticketWallPostIsJunk } from './ticketWallFilters';
@@ -150,16 +151,24 @@ function resolveCreatedAtMs(row: TicketWallDbRow): number {
 }
 
 function dbRowToPost(row: TicketWallDbRow, localIds: Set<string>): TicketWallPost {
+  let payload = row.payload ?? undefined;
+  if (row.kind === 'buy' && payload && typeof payload === 'object' && 'targetMatch' in payload) {
+    const p = payload as TicketBuyPayload;
+    const budget = normalizeBudgetValue(p.budget);
+    if (budget !== p.budget) {
+      payload = { ...p, budget };
+    }
+  }
   const base = {
     id: row.id,
     kind: row.kind,
     flag: row.flag || '🏳️',
     username: row.username || 'Fan',
-    summary: row.summary || '',
-    detail: row.detail || '',
+    summary: (row.summary || '').replace(/面议/g, 'Negotiable').replace(/议价/g, 'Negotiable'),
+    detail: (row.detail || '').replace(/面议/g, 'Negotiable').replace(/议价/g, 'Negotiable'),
     createdAt: resolveCreatedAtMs(row),
     isUser: localIds.has(row.id),
-    payload: row.payload ?? undefined,
+    payload,
   };
   return {
     ...base,
