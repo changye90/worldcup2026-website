@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   MapPin, ChevronLeft, ChevronRight, Bed, Car, Building2,
   Zap, Calendar, Phone, Clock,
-  Flame, ChevronDown, Check, Ticket,
+  Flame, ChevronDown, Check, Ticket, X,
   BarChart3, Tag, Plus, Globe,
 } from 'lucide-react';
 import {
@@ -24,14 +24,17 @@ import {
   TicketPostGrid,
   TicketSafetyDisclaimer,
 } from './TicketMarketplace';
+import { TicketPostDetailPage } from './TicketPostDetail';
+import { migrateLegacyTicketQuery } from './ticketRouting';
 import { TicketSeoGuides } from './TicketSeoGuides.tsx';
 import { useAppRouting } from './useAppRouting';
 import { readUrlAppState } from './seoRouting';
 import { findMatchByNumber, filterSellPosts } from './sellPostResolve';
 import { matchInvolvesNation, scheduleNationOptions } from './matchNationFilter';
-import { getTicketIdFromUrl } from './ticketShare';
+import { buildTicketShareUrl, shareTicketPost } from './ticketShare';
+import { buildTicketPostPath, parseTicketPostIdFromPath } from './ticketRouting';
 import { HeroCountdown } from './HeroCountdown';
-import type { TicketWallKind } from './ticketPosts';
+import type { TicketWallKind, TicketWallPost } from './ticketPosts';
 
 /** Hero background — place `hero.png` in `public/`. */
 const HERO_IMAGE_PATH = '/hero.png';
@@ -129,7 +132,10 @@ function formatSchedulePill(iso: string) {
 
 export default function App() {
   const [lang, setLang] = useState<Lang>('en');
-  const initialUrl = readUrlAppState();
+  const initialUrl = useMemo(() => {
+    migrateLegacyTicketQuery();
+    return readUrlAppState();
+  }, []);
   const nationOptions = useMemo(() => scheduleNationOptions(), []);
   const initialMatchRow =
     initialUrl.match != null ? findMatchByNumber(initialUrl.match) : undefined;
@@ -144,6 +150,9 @@ export default function App() {
   const [activeNation, setActiveNation] = useState<string | null>(initialNation);
   const [activeTab, setActiveTab] = useState<Tab>(initialUrl.tab);
   const [postModal, setPostModal] = useState<TicketWallKind | null>(null);
+  const [ticketPostId, setTicketPostId] = useState<string | null>(initialUrl.ticket);
+  const [recentPost, setRecentPost] = useState<TicketWallPost | null>(null);
+  const [recentPostShareState, setRecentPostShareState] = useState<'idle' | 'copied'>('idle');
   const listingsRef = useRef<HTMLElement>(null);
   const clearListingFilters = () => {
     track(AnalyticsEvent.FilterClear, {
@@ -155,32 +164,43 @@ export default function App() {
     setActiveMatchNumber(null);
     setActiveNation(null);
   };
-  const { navigateToTab } = useAppRouting(
+  const { handlePost, userPosts, sellPosts, highlightPostId, shareLinkLoading, wallLoading } = useTicketWall(
+    lang,
+    {
+      useDetailPage: true,
+      onOpenSharePost: post => {
+        setTicketPostId(post.id);
+        window.history.pushState(null, '', buildTicketPostPath(post.id));
+      },
+    },
+  );
+
+  const ticketPostForSeo = useMemo(
+    () => (ticketPostId ? userPosts.find(p => p.id === ticketPostId) ?? null : null),
+    [ticketPostId, userPosts],
+  );
+
+  useEffect(() => {
+    if (!ticketPostId) return;
+    if (parseTicketPostIdFromPath(window.location.pathname) !== ticketPostId) {
+      window.history.replaceState(window.history.state, '', buildTicketPostPath(ticketPostId));
+    }
+  }, [ticketPostId]);
+
+  const { navigateToTab, navigateToTicketPost, navigateBackFromTicket } = useAppRouting(
     lang,
     activeTab,
     activeCity,
     activeMatchNumber,
     activeNation,
+    ticketPostId,
+    ticketPostForSeo,
     setActiveTab,
     setActiveCity,
     setActiveMatchNumber,
     setActiveNation,
+    setTicketPostId,
   );
-  const deepLinkTicketId = useMemo(() => initialUrl.ticket ?? getTicketIdFromUrl(), []);
-  const { handlePost, sellPosts, highlightPostId, shareLinkLoading, wallLoading } = useTicketWall(lang, {
-    onOpenSharePost: () => {
-      navigateToTab('tickets');
-      clearListingFilters();
-      listingsRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
-    },
-  });
-
-  useLayoutEffect(() => {
-    if (!deepLinkTicketId) return;
-    clearListingFilters();
-    setActiveTab('tickets');
-    listingsRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
-  }, [deepLinkTicketId]);
   const activeMatch = activeMatchNumber != null ? findMatchByNumber(activeMatchNumber) : undefined;
   const filteredSellPosts = useMemo(
     () => filterSellPosts(sellPosts, { activeCity, activeMatchNumber, activeNation }),
@@ -206,6 +226,32 @@ export default function App() {
   const hostCitiesRef = useRef<HTMLDivElement>(null);
   const scheduleSectionRef = useRef<HTMLElement>(null);
   const tr = t[lang];
+
+  const onShareRecentPost = async () => {
+    if (!recentPost) return;
+    track(AnalyticsEvent.TicketShare, {
+      post_id: recentPost.id,
+      kind: recentPost.kind,
+      is_user: true,
+      source: 'post_success_modal',
+    });
+    const result = await shareTicketPost(recentPost, tr);
+    setRecentPostShareState(result === 'copied' ? 'copied' : 'idle');
+    if (result === 'copied') {
+      window.setTimeout(() => setRecentPostShareState('idle'), 1200);
+      window.setTimeout(() => setRecentPost(null), 900);
+    } else {
+      setRecentPost(null);
+    }
+  };
+
+  const onCopyRecentPostLink = async () => {
+    if (!recentPost) return;
+    await navigator.clipboard.writeText(buildTicketShareUrl(recentPost));
+    setRecentPostShareState('copied');
+    window.setTimeout(() => setRecentPostShareState('idle'), 1200);
+    window.setTimeout(() => setRecentPost(null), 900);
+  };
 
   const pageViewBoot = useRef(false);
 
@@ -330,18 +376,18 @@ export default function App() {
           ? 'bg-pitch-900/90 backdrop-blur-xl border-b border-grass-700/30 shadow-2xl shadow-black/40'
           : 'bg-transparent'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
 
           {/* Brand */}
           <div className="flex-shrink-0">
-            <h1 className="text-lg font-bold tracking-tight text-white leading-tight">
+            <h1 className="text-base sm:text-[17px] font-bold tracking-tight text-white leading-tight">
               {tr.brand} <span className="text-grass-400">· World Cup 2026</span>
             </h1>
-            <p className="text-[10px] text-gray-400 tracking-widest uppercase leading-none">{tr.brandSub}</p>
+            <p className="text-[9px] text-gray-400 tracking-widest uppercase leading-none">{tr.brandSub}</p>
           </div>
 
           {/* Right: schedule + language (category nav moved to hero) */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400">
               <Calendar className="w-3.5 h-3.5 text-gold-400" />
               <span>{tr.scheduleFullRange}</span>
@@ -353,7 +399,7 @@ export default function App() {
                 setScheduleOpen(true);
                 scheduleSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-white/5"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-white/5"
             >
               <Calendar className="w-3.5 h-3.5" />
               {lang === 'pt' ? 'Calendário' : lang === 'es' ? 'Calendario' : 'Schedule'}
@@ -368,7 +414,7 @@ export default function App() {
                     return !o;
                   });
                 }}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-pitch-700/80 border border-gray-700 hover:border-grass-600/60 text-sm text-gray-300 hover:text-white transition-all duration-200"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-pitch-700/80 border border-gray-700 hover:border-grass-600/60 text-sm text-gray-300 hover:text-white transition-all duration-200"
               >
                 <span className="text-base leading-none">{currentLang.flag}</span>
                 <span className="hidden sm:inline font-medium">{currentLang.label}</span>
@@ -405,6 +451,22 @@ export default function App() {
         </div>
       </nav>
 
+      {ticketPostId ? (
+        <TicketPostDetailPage
+          postId={ticketPostId}
+          wallPosts={userPosts}
+          tr={tr}
+          lang={lang}
+          onBack={navigateBackFromTicket}
+          onOpenGuides={() => {
+            navigateBackFromTicket();
+            window.setTimeout(() => {
+              document.getElementById('ticket-guides')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 150);
+          }}
+        />
+      ) : (
+        <>
       {/* ── HERO ──────────────────────────────────────────────────────── */}
       <section
         className="relative flex flex-col overflow-hidden bg-pitch-900 py-3 sm:py-4"
@@ -996,6 +1058,7 @@ export default function App() {
               highlightPostId={highlightPostId}
               shareLinkLoading={shareLinkLoading}
               wallLoading={wallLoading}
+              onViewDetails={navigateToTicketPost}
             />
           </div>
         )}
@@ -1062,6 +1125,10 @@ export default function App() {
         {activeTab === 'odds' && <OddsPanel lang={lang} tr={tr} />}
       </section>
 
+      <TicketSeoGuides lang={lang} />
+        </>
+      )}
+
       {postModal ? (
         <TicketPostModal
           kind={postModal}
@@ -1075,12 +1142,62 @@ export default function App() {
               is_user: true,
             });
             handlePost(post);
-            navigateToTab('tickets');
+            navigateToTicketPost(post.id);
+            window.setTimeout(() => {
+              setRecentPost(post);
+              setRecentPostShareState('idle');
+            }, 920);
           }}
         />
       ) : null}
 
-      <TicketSeoGuides lang={lang} />
+      {recentPost ? (
+        <div
+          className="fixed inset-0 z-[110] flex items-end justify-center p-4 sm:items-center sm:p-6"
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-pitch-950/80 backdrop-blur-sm"
+            aria-label={tr.ticketModalClose}
+            onClick={() => setRecentPost(null)}
+          />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-gold-500/25 bg-gradient-to-br from-pitch-800 to-pitch-900 p-5 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setRecentPost(null)}
+              className="absolute right-3 top-3 rounded-lg p-1.5 text-gray-500 transition hover:bg-pitch-700 hover:text-white"
+              aria-label={tr.ticketModalClose}
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <h3 className="text-lg font-bold text-white">{tr.ticketPostShareTitle}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-300">
+              {recentPost.kind === 'sell' ? tr.ticketPostShareDescSell : tr.ticketPostShareDescBuy}
+            </p>
+            <div className="mt-4 rounded-lg border border-gray-700/70 bg-pitch-950/70 px-3 py-2 text-xs text-gray-400">
+              {buildTicketShareUrl(recentPost)}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => void onShareRecentPost()}
+                className="rounded-xl bg-gold-500 px-3 py-2.5 text-sm font-bold text-pitch-900 transition hover:bg-gold-400"
+              >
+                {tr.ticketShare}
+              </button>
+              <button
+                type="button"
+                onClick={() => void onCopyRecentPostLink()}
+                className="rounded-xl border border-gray-600 bg-pitch-900/70 px-3 py-2.5 text-sm font-semibold text-white transition hover:border-grass-500 hover:text-grass-300"
+              >
+                {recentPostShareState === 'copied' ? tr.ticketShareCopied : tr.ticketPostShareLink}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* ── FOOTER ────────────────────────────────────────────────────── */}
       <footer className="bg-pitch-800 border-t border-grass-700/20 py-8">

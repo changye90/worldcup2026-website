@@ -36,9 +36,17 @@ export function escapeHtml(text: string): string {
 }
 
 export function ogTitleForPost(row: TicketOgRow): string {
-  const kind = row.kind === 'buy' ? 'Looking for tickets' : 'Tickets for sale';
   const summary = (row.summary || '').trim();
-  return summary ? `OKcopa · ${kind} · ${summary}` : `OKcopa · ${kind}`;
+  if (summary) {
+    const suffix =
+      row.kind === 'buy'
+        ? ' · World Cup 2026 tickets wanted · OKcopa'
+        : ' · World Cup 2026 tickets for sale · OKcopa';
+    return `${summary}${suffix}`;
+  }
+  return row.kind === 'buy'
+    ? 'World Cup 2026 tickets wanted · OKcopa'
+    : 'World Cup 2026 tickets for sale · OKcopa';
 }
 
 export function ogDescriptionForPost(row: TicketOgRow): string {
@@ -47,8 +55,10 @@ export function ogDescriptionForPost(row: TicketOgRow): string {
   const detail = (row.detail || row.summary || '').trim().replace(/\s+/g, ' ');
   const verb = row.kind === 'buy' ? 'is looking for' : 'has tickets for';
   const head = `${flag} ${user} ${verb}`;
-  const body = detail.slice(0, 200);
-  return body.length > head.length + 4 ? `${head} — ${body}` : head;
+  const body = detail.slice(0, 220);
+  const core = body.length > head.length + 4 ? `${head} — ${body}` : head;
+  const prefix = 'FIFA World Cup 2026 fan-to-fan listing on OKcopa. ';
+  return `${prefix}${core}`.slice(0, 320);
 }
 
 export async function fetchTicketRow(

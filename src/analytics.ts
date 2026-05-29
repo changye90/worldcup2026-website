@@ -283,6 +283,7 @@ export const AnalyticsEvent = {
   TicketWhatsapp: 'ticket_whatsapp_click',
   TicketShare: 'ticket_share_click',
   TicketDeepLink: 'ticket_deep_link_view',
+  TicketDetailView: 'ticket_detail_view',
   TicketPostSubmit: 'ticket_post_submit',
   CarCall: 'car_call_click',
   HotelCall: 'hotel_call_click',

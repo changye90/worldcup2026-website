@@ -1,5 +1,10 @@
-import type { Lang } from './i18n';
+import type { Lang, Translations } from './i18n';
 import { buildAppUrl, isGuidesPath, pageMetaForUrl, pathFromTab, type ListingTab } from './seoRouting';
+import { buildTicketPostPageUrl } from './ticketRouting';
+import { ticketDetailJsonLd, ticketPageSeoMeta } from './ticketDetailSeo';
+import type { TicketWallPost } from './ticketPosts';
+
+const JSON_LD_ID = 'okcopa-ticket-jsonld';
 
 function upsertMeta(attr: 'name' | 'property', key: string, content: string) {
   const sel = `meta[${attr}="${key}"]`;
@@ -22,7 +27,23 @@ function upsertCanonical(href: string) {
   el.setAttribute('href', href);
 }
 
+function upsertJsonLd(data: Record<string, unknown>) {
+  let el = document.getElementById(JSON_LD_ID) as HTMLScriptElement | null;
+  if (!el) {
+    el = document.createElement('script');
+    el.id = JSON_LD_ID;
+    el.type = 'application/ld+json';
+    document.head.appendChild(el);
+  }
+  el.textContent = JSON.stringify(data);
+}
+
+export function clearTicketPostStructuredData(): void {
+  document.getElementById(JSON_LD_ID)?.remove();
+}
+
 export function applyPageSeo(lang: Lang, opts: { tab: ListingTab; city: string | null }): void {
+  clearTicketPostStructuredData();
   const url = new URL(window.location.href);
   if (isGuidesPath(url.pathname)) {
     url.pathname = '/guides';
@@ -31,15 +52,12 @@ export function applyPageSeo(lang: Lang, opts: { tab: ListingTab; city: string |
   }
   if (opts.city) url.searchParams.set('city', opts.city);
   else url.searchParams.delete('city');
-  const ticket = url.searchParams.get('ticket');
-  if (ticket) url.searchParams.set('ticket', ticket);
 
   const meta = pageMetaForUrl(lang, url);
   const canonical = buildAppUrl({
     tab: opts.tab,
     city: opts.city,
     guides: isGuidesPath(window.location.pathname),
-    ticketId: ticket,
     origin: url.origin,
   }).split('#')[0];
 
@@ -53,4 +71,25 @@ export function applyPageSeo(lang: Lang, opts: { tab: ListingTab; city: string |
   upsertMeta('name', 'twitter:title', meta.title);
   upsertMeta('name', 'twitter:description', meta.description);
   upsertCanonical(canonical);
+}
+
+export function applyTicketPostPageSeo(lang: Lang, post: TicketWallPost, tr: Translations): void {
+  const { title, description } = ticketPageSeoMeta(post, tr);
+  const canonical = buildTicketPostPageUrl(post.id);
+  const imageUrl = `${new URL(canonical).origin}/og/ticket.jpg?id=${encodeURIComponent(post.id)}`;
+
+  document.title = title;
+  document.documentElement.lang = lang === 'es' ? 'es' : lang === 'pt' ? 'pt' : 'en';
+  upsertMeta('name', 'description', description);
+  upsertMeta('property', 'og:title', title);
+  upsertMeta('property', 'og:description', description);
+  upsertMeta('property', 'og:url', canonical);
+  upsertMeta('property', 'og:type', 'article');
+  upsertMeta('property', 'og:image', imageUrl);
+  upsertMeta('name', 'twitter:card', 'summary_large_image');
+  upsertMeta('name', 'twitter:title', title);
+  upsertMeta('name', 'twitter:description', description);
+  upsertMeta('name', 'twitter:image', imageUrl);
+  upsertCanonical(canonical);
+  upsertJsonLd(ticketDetailJsonLd(post, tr));
 }

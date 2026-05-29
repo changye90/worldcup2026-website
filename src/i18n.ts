@@ -156,6 +156,31 @@ export const t = {
       'e.g. Want 4 for Argentina vs Algeria | Kansas City | ~$500 budget | Cat 1 or Cat 2 only…',
     ticketBuySubmit: 'Searching worldwide',
     ticketPostSuccess: 'Posted — live on the wall!',
+    ticketPostShareTitle: 'Post published',
+    ticketPostShareDescSell: 'Your ticket listing is live. Share it now so buyers can message you directly.',
+    ticketPostShareDescBuy: 'Your buy request is live. Share it now so sellers can reach you directly.',
+    ticketPostShareLink: 'Copy link',
+    ticketDetailBack: 'Back to listings',
+    ticketDetailView: 'View details',
+    ticketDetailPublisher: 'Posted by',
+    ticketDetailPublisherAnonymous: 'OKcopa fan',
+    ticketDetailNotFound: 'This listing was not found or has been removed.',
+    ticketDetailMetaTitleSell: (match: string) => `${match} · World Cup 2026 tickets for sale · OKcopa`,
+    ticketDetailMetaTitleBuy: (match: string) => `Looking for ${match} tickets · World Cup 2026 · OKcopa`,
+    ticketDetailMetaDescSell: (match: string, extras: string) =>
+      `FIFA World Cup 2026 fan-to-fan listing: ${match}.${extras ? ` ${extras}.` : ''} Compare seat, stadium, and price details on OKcopa — free ticket wall, no buyer fees.`,
+    ticketDetailMetaDescBuy: (match: string, extras: string) =>
+      `World Cup 2026 ticket wanted: ${match}.${extras ? ` ${extras}.` : ''} Fan buy request on OKcopa — browse the live ticket board and connect from listings.`,
+    ticketDetailSeoLeadSell: (match: string, city: string) =>
+      `World Cup 2026 tickets for ${match}${city ? ` in ${city}` : ''} — fan-to-fan listing on OKcopa.`,
+    ticketDetailSeoLeadBuy: (match: string) =>
+      `Fan looking for World Cup 2026 tickets for ${match} on OKcopa.`,
+    ticketDetailSeoPlatform:
+      'OKcopa covers all 2026 host cities in the USA, Mexico, and Canada. Use the ticket wall to filter by city or match, read our buying guide, and contact sellers from each listing card.',
+    ticketDetailSeoLinkWall: 'Browse all World Cup 2026 ticket listings',
+    ticketDetailSeoLinkGuides: 'Ticket buying guide & price trends',
+    ticketDetailSeoSectionTitle: 'About this listing',
+    ticketDetailContactOnWall: 'Contact seller on the ticket wall',
     formSelectOptional: '— Optional —',
     formLabelMatch: 'Match(es)',
     formHintSellMatch:
@@ -387,6 +412,31 @@ export const t = {
       'ej. Busco 4 para Argentina vs Argelia | Kansas City | presupuesto ~$500 | solo Cat 1 o Cat 2…',
     ticketBuySubmit: 'Buscando en todo el mundo',
     ticketPostSuccess: '¡Publicado — ya está en el muro!',
+    ticketPostShareTitle: 'Publicación lista',
+    ticketPostShareDescSell: 'Tu anuncio ya está en vivo. Compártelo ahora para recibir mensajes de compradores.',
+    ticketPostShareDescBuy: 'Tu pedido ya está en vivo. Compártelo ahora para que los vendedores te contacten.',
+    ticketPostShareLink: 'Copiar enlace',
+    ticketDetailBack: 'Volver al muro',
+    ticketDetailView: 'Ver detalle',
+    ticketDetailPublisher: 'Publicado por',
+    ticketDetailPublisherAnonymous: 'Aficionado OKcopa',
+    ticketDetailNotFound: 'No encontramos esta publicación o ya no está disponible.',
+    ticketDetailMetaTitleSell: (match: string) => `${match} · Boletos Mundial 2026 en venta · OKcopa`,
+    ticketDetailMetaTitleBuy: (match: string) => `Busco boletos ${match} · Mundial 2026 · OKcopa`,
+    ticketDetailMetaDescSell: (match: string, extras: string) =>
+      `Anuncio fan a fan Mundial 2026: ${match}.${extras ? ` ${extras}.` : ''} Detalles de asiento, estadio y precio en OKcopa — muro gratis, sin comisión al comprador.`,
+    ticketDetailMetaDescBuy: (match: string, extras: string) =>
+      `Pedido de boletos Mundial 2026: ${match}.${extras ? ` ${extras}.` : ''} Solicitud en OKcopa — explora el muro en vivo y contacta desde cada tarjeta.`,
+    ticketDetailSeoLeadSell: (match: string, city: string) =>
+      `Boletos Mundial 2026 para ${match}${city ? ` en ${city}` : ''} — anuncio fan a fan en OKcopa.`,
+    ticketDetailSeoLeadBuy: (match: string) =>
+      `Aficionado busca boletos del Mundial 2026 para ${match} en OKcopa.`,
+    ticketDetailSeoPlatform:
+      'OKcopa cubre todas las sedes 2026 en EE. UU., México y Canadá. Filtra por ciudad o partido en el muro, lee la guía de compra y contacta vendedores desde cada publicación.',
+    ticketDetailSeoLinkWall: 'Ver todos los boletos del Mundial 2026',
+    ticketDetailSeoLinkGuides: 'Guía de compra y tendencias de precio',
+    ticketDetailSeoSectionTitle: 'Sobre este anuncio',
+    ticketDetailContactOnWall: 'Contactar en el muro de boletos',
     formSelectOptional: '— Opcional —',
     formLabelMatch: 'Partido(s)',
     formHintSellMatch:
@@ -618,6 +668,31 @@ export const t = {
       'ex. Quero 4 para Argentina x Argélia | Kansas City | orçamento ~US$500 | só Cat 1 ou Cat 2…',
     ticketBuySubmit: 'Buscando no mundo todo',
     ticketPostSuccess: 'Publicado — já está no mural!',
+    ticketPostShareTitle: 'Publicação pronta',
+    ticketPostShareDescSell: 'Seu anúncio já está no mural. Compartilhe agora para receber mensagens de compradores.',
+    ticketPostShareDescBuy: 'Seu pedido já está no mural. Compartilhe agora para que vendedores falem com você.',
+    ticketPostShareLink: 'Copiar link',
+    ticketDetailBack: 'Voltar ao mural',
+    ticketDetailView: 'Ver detalhes',
+    ticketDetailPublisher: 'Publicado por',
+    ticketDetailPublisherAnonymous: 'Torcedor OKcopa',
+    ticketDetailNotFound: 'Não encontramos este anúncio ou ele não está mais disponível.',
+    ticketDetailMetaTitleSell: (match: string) => `${match} · Ingressos Copa 2026 à venda · OKcopa`,
+    ticketDetailMetaTitleBuy: (match: string) => `Procuro ingressos ${match} · Copa 2026 · OKcopa`,
+    ticketDetailMetaDescSell: (match: string, extras: string) =>
+      `Anúncio torcedor a torcedor Copa 2026: ${match}.${extras ? ` ${extras}.` : ''} Assento, estádio e preço no OKcopa — mural grátis, sem taxa ao comprador.`,
+    ticketDetailMetaDescBuy: (match: string, extras: string) =>
+      `Pedido de ingressos Copa 2026: ${match}.${extras ? ` ${extras}.` : ''} Solicitação no OKcopa — veja o mural ao vivo e fale com vendedores em cada card.`,
+    ticketDetailSeoLeadSell: (match: string, city: string) =>
+      `Ingressos Copa 2026 para ${match}${city ? ` em ${city}` : ''} — anúncio torcedor a torcedor no OKcopa.`,
+    ticketDetailSeoLeadBuy: (match: string) =>
+      `Torcedor procura ingressos da Copa 2026 para ${match} no OKcopa.`,
+    ticketDetailSeoPlatform:
+      'O OKcopa cobre todas as sedes de 2026 nos EUA, México e Canadá. Filtre por cidade ou jogo no mural, leia o guia de compra e contate vendedores em cada publicação.',
+    ticketDetailSeoLinkWall: 'Ver todos os ingressos da Copa 2026',
+    ticketDetailSeoLinkGuides: 'Guia de compra e tendências de preço',
+    ticketDetailSeoSectionTitle: 'Sobre este anúncio',
+    ticketDetailContactOnWall: 'Falar com o vendedor no mural',
     formSelectOptional: '— Opcional —',
     formLabelMatch: 'Jogo(s)',
     formHintSellMatch:

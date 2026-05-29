@@ -10,6 +10,23 @@ import { resolveSupabaseEnv } from './supabaseEnv';
 
 const SPA_PATHS = new Set(['/', '/index.html', '/tickets', '/cars', '/hotels', '/odds', '/guides']);
 
+function parseTicketPostIdFromPath(pathname: string): string | null {
+  const p = pathname.replace(/\/$/, '') || '/';
+  if (p === '/index.html') return null;
+  const m = p.match(/^\/tickets\/([^/]+)$/);
+  if (!m) return null;
+  try {
+    return decodeURIComponent(m[1]).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function isSpaPath(path: string): boolean {
+  if (SPA_PATHS.has(path)) return true;
+  return parseTicketPostIdFromPath(path) != null;
+}
+
 interface Env {
   SUPABASE_URL?: string;
   SUPABASE_ANON_KEY?: string;
@@ -30,11 +47,11 @@ export const onRequest: PagesFunction<Env> = async context => {
 
   const url = new URL(context.request.url);
   const path = normalizePath(url.pathname);
-  if (!SPA_PATHS.has(path)) {
+  if (!isSpaPath(path)) {
     return context.next();
   }
 
-  const ticketId = url.searchParams.get('ticket')?.trim();
+  const ticketId = parseTicketPostIdFromPath(path) || url.searchParams.get('ticket')?.trim();
   const origin = (context.env.SITE_ORIGIN || url.origin).replace(/\/$/, '');
   const pageUrl = `${origin}${url.pathname}${url.search}`;
   const brandImage = `${origin}/og/brand`;

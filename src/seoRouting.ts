@@ -1,4 +1,5 @@
 import type { Lang } from './i18n';
+import { buildTicketPostPath, parseTicketPostIdFromPath } from './ticketRouting';
 
 export type ListingTab = 'tickets' | 'cars' | 'hotels' | 'odds';
 
@@ -57,10 +58,11 @@ export function readUrlAppState(url: URL = new URL(window.location.href)): UrlAp
   const matchRaw = url.searchParams.get('match')?.trim();
   const match =
     matchRaw && /^\d+$/.test(matchRaw) ? Number.parseInt(matchRaw, 10) : null;
-  const ticket = url.searchParams.get('ticket')?.trim() || null;
+  const ticketFromPath = parseTicketPostIdFromPath(path);
+  const ticket = ticketFromPath || url.searchParams.get('ticket')?.trim() || null;
   const team = url.searchParams.get('team')?.trim() || null;
   return {
-    tab: ticket ? 'tickets' : tab,
+    tab: ticket || ticketFromPath ? 'tickets' : tab,
     city,
     match,
     team,
@@ -78,14 +80,21 @@ export function buildAppUrl(opts: {
   guides?: boolean;
   origin?: string;
 }): string {
-  const url = new URL(opts.origin ?? window.location.origin);
+  const origin = opts.origin ?? (typeof window !== 'undefined' ? window.location.origin : 'https://okcopa.com');
+  if (opts.ticketId) {
+    const url = new URL(origin);
+    url.pathname = buildTicketPostPath(opts.ticketId);
+    url.search = '';
+    url.hash = '';
+    return url.toString();
+  }
+  const url = new URL(origin);
   url.pathname = opts.guides ? '/guides' : pathFromTab(opts.tab);
   url.search = '';
   url.hash = '';
   if (opts.city) url.searchParams.set('city', opts.city);
   if (opts.match != null) url.searchParams.set('match', String(opts.match));
   if (opts.team) url.searchParams.set('team', opts.team);
-  if (opts.ticketId) url.searchParams.set('ticket', opts.ticketId);
   return url.toString();
 }
 

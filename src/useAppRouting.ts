@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { Lang } from './i18n';
-import { applyPageSeo } from './seoDocument';
+import { t } from './i18n';
+import { applyPageSeo, applyTicketPostPageSeo } from './seoDocument';
 import { trackPageView } from './analytics';
 import { buildAppUrl, readUrlAppState, type ListingTab } from './seoRouting';
+import { buildTicketPostPath, migrateLegacyTicketQuery } from './ticketRouting';
+import type { TicketWallPost } from './ticketPosts';
 
 const LEGACY_TABS = new Set(['tickets', 'cars', 'hotels', 'odds']);
 
@@ -12,10 +15,13 @@ export function useAppRouting(
   activeCity: string | null,
   activeMatchNumber: number | null,
   activeNation: string | null,
+  ticketPostId: string | null,
+  ticketPostForSeo: TicketWallPost | null,
   setActiveTab: (tab: ListingTab) => void,
   setActiveCity: (city: string | null) => void,
   setActiveMatchNumber: (match: number | null) => void,
   setActiveNation: (nation: string | null) => void,
+  setTicketPostId: (id: string | null) => void,
 ) {
   const skipUrlSync = useRef(false);
   const booted = useRef(false);
@@ -23,6 +29,7 @@ export function useAppRouting(
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
+    migrateLegacyTicketQuery();
 
     const url = new URL(window.location.href);
     const path = url.pathname.replace(/\/$/, '') || '/';
@@ -40,31 +47,40 @@ export function useAppRouting(
     }
 
     const state = readUrlAppState();
+    if (state.ticket) {
+      setTicketPostId(state.ticket);
+      setActiveTab('tickets');
+    }
     applyPageSeo(lang, { tab: state.tab, city: state.city });
     if (state.scrollToGuides) {
       window.setTimeout(() => {
         document.getElementById('ticket-guides')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 400);
     }
-  }, [lang]);
+  }, [lang, setActiveTab, setTicketPostId]);
 
   useEffect(() => {
-    applyPageSeo(lang, { tab: activeTab, city: activeCity });
-  }, [lang, activeTab, activeCity]);
+    if (ticketPostId && ticketPostForSeo) {
+      applyTicketPostPageSeo(lang, ticketPostForSeo, t[lang]);
+      return;
+    }
+    if (!ticketPostId) {
+      applyPageSeo(lang, { tab: activeTab, city: activeCity });
+    }
+  }, [lang, activeTab, activeCity, ticketPostId, ticketPostForSeo]);
 
   useEffect(() => {
     if (skipUrlSync.current) return;
+    if (ticketPostId) return;
     const url = new URL(window.location.href);
     const onGuides = url.pathname.replace(/\/$/, '') === '/guides';
     if (onGuides) return;
 
-    const ticket = url.searchParams.get('ticket');
     const next = buildAppUrl({
       tab: activeTab,
       city: activeCity,
       match: activeMatchNumber,
       team: activeNation,
-      ticketId: ticket,
     });
     const target = new URL(next);
     const targetStr = `${target.pathname}${target.search}`;
@@ -72,7 +88,7 @@ export function useAppRouting(
     if (currentStr !== targetStr) {
       window.history.replaceState(window.history.state, '', targetStr);
     }
-  }, [activeTab, activeCity, activeMatchNumber, activeNation]);
+  }, [activeTab, activeCity, activeMatchNumber, activeNation, ticketPostId]);
 
   useEffect(() => {
     const onPop = () => {
@@ -82,16 +98,21 @@ export function useAppRouting(
       setActiveCity(state.city);
       setActiveMatchNumber(state.match);
       setActiveNation(state.team);
-      applyPageSeo(lang, { tab: state.tab, city: state.city });
-      trackPageView({ tab: state.tab, source: 'back', lang });
+      setTicketPostId(state.ticket);
       skipUrlSync.current = false;
+      if (state.ticket) {
+        trackPageView({ tab: 'tickets', source: 'back', lang });
+      } else {
+        applyPageSeo(lang, { tab: state.tab, city: state.city });
+        trackPageView({ tab: state.tab, source: 'back', lang });
+      }
       if (state.scrollToGuides) {
         document.getElementById('ticket-guides')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
-  }, [lang, setActiveTab, setActiveCity, setActiveMatchNumber, setActiveNation]);
+  }, [lang, setActiveTab, setActiveCity, setActiveMatchNumber, setActiveNation, setTicketPostId]);
 
   const navigateToTab = useCallback(
     (tab: ListingTab) => {
@@ -100,9 +121,28 @@ export function useAppRouting(
       );
       window.history.pushState(null, '', `${url.pathname}${url.search}`);
       setActiveTab(tab);
+      setTicketPostId(null);
     },
-    [activeCity, activeMatchNumber, activeNation, setActiveTab],
+    [activeCity, activeMatchNumber, activeNation, setActiveTab, setTicketPostId],
   );
 
-  return { navigateToTab };
+  const navigateToTicketPost = useCallback(
+    (id: string) => {
+      window.history.pushState(null, '', buildTicketPostPath(id));
+      setTicketPostId(id);
+      setActiveTab('tickets');
+    },
+    [setTicketPostId, setActiveTab],
+  );
+
+  const navigateBackFromTicket = useCallback(() => {
+    setTicketPostId(null);
+    const url = new URL(
+      buildAppUrl({ tab: 'tickets', city: activeCity, match: activeMatchNumber, team: activeNation }),
+    );
+    window.history.pushState(null, '', `${url.pathname}${url.search}`);
+    setActiveTab('tickets');
+  }, [activeCity, activeMatchNumber, activeNation, setTicketPostId, setActiveTab]);
+
+  return { navigateToTab, navigateToTicketPost, navigateBackFromTicket };
 }

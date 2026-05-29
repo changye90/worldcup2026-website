@@ -40,13 +40,16 @@ import {
   sellNotesExcludingStructured,
   whatsappPrefillContext,
 } from './sellPostResolve';
-import {
-  clearTicketShareFromUrl,
-  getTicketIdFromUrl,
-  scrollToTicketPost,
-  shareTicketPost,
-  ticketPostElementId,
-} from './ticketShare';
+import { parseTicketPostIdFromPath } from './ticketRouting';
+import { getTicketIdFromUrl, shareTicketPost, ticketPostElementId } from './ticketShare';
+
+/** Clicks on these elements must not open the ticket detail page. */
+const CARD_NAV_EXCLUDE = '[data-card-nav-exclude]';
+
+function isCardNavExcluded(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest(CARD_NAV_EXCLUDE));
+}
 
 function TicketShareButton({ post, tr }: { post: TicketWallPost; tr: Translations }) {
   const [status, setStatus] = useState<'idle' | 'copied'>('idle');
@@ -67,6 +70,7 @@ function TicketShareButton({ post, tr }: { post: TicketWallPost; tr: Translation
   return (
     <button
       type="button"
+      data-card-nav-exclude
       onClick={() => void onShare()}
       className="inline-flex items-center gap-1 rounded-lg border border-gray-600/70 bg-pitch-900/60 px-2 py-1 text-[10px] font-semibold text-gray-400 transition hover:border-gray-500 hover:text-white"
       aria-label={tr.ticketShareAria}
@@ -126,6 +130,7 @@ function TicketPostDetails({
       {canExpand || expanded ? (
         <button
           type="button"
+          data-card-nav-exclude
           onClick={() => setExpanded(v => !v)}
           className={`mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold ${toggleCls}`}
         >
@@ -203,11 +208,13 @@ function TicketSellPostCard({
   tr,
   lang,
   highlighted,
+  onViewDetails,
 }: {
   post: TicketWallPost;
   tr: Translations;
   lang: Lang;
   highlighted?: boolean;
+  onViewDetails?: (postId: string) => void;
 }) {
   const p = post.payload as TicketSellPayload | undefined;
   const schedule = primaryScheduleMatchForSellPost(post);
@@ -222,12 +229,31 @@ function TicketSellPostCard({
     ? [schedule.stadium, schedule.city].filter(Boolean).join(', ')
     : null;
 
+  const openDetails = onViewDetails
+    ? (e: React.MouseEvent | React.KeyboardEvent) => {
+        if (isCardNavExcluded(e.target)) return;
+        onViewDetails(post.id);
+      }
+    : undefined;
+
   return (
     <article
       id={ticketPostElementId(post.id)}
+      role={onViewDetails ? 'button' : undefined}
+      tabIndex={onViewDetails ? 0 : undefined}
+      onClick={openDetails}
+      onKeyDown={e => {
+        if (!onViewDetails) return;
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        if (isCardNavExcluded(e.target)) return;
+        e.preventDefault();
+        onViewDetails(post.id);
+      }}
       className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-700/40 bg-pitch-800/95 transition-all duration-300 hover:-translate-y-0.5 hover:border-gold-500/35 hover:shadow-xl hover:shadow-black/20 ${
-        post.isUser ? 'ring-1 ring-gold-500/25' : ''
-      } ${highlighted ? 'ring-2 ring-grass-400 ring-offset-2 ring-offset-pitch-900' : ''}`}
+        onViewDetails ? 'cursor-pointer' : ''
+      } ${post.isUser ? 'ring-1 ring-gold-500/25' : ''} ${
+        highlighted ? 'ring-2 ring-grass-400 ring-offset-2 ring-offset-pitch-900' : ''
+      }`}
     >
       <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
         {/* Zone 1 — status, price anchor, buyer-fee badge */}
@@ -326,16 +352,18 @@ function TicketSellPostCard({
           {waHref ? (
             <a
               href={waHref}
+              data-card-nav-exclude
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() =>
+              onClick={e => {
+                e.stopPropagation();
                 track(AnalyticsEvent.TicketWhatsapp, {
                   post_id: post.id,
                   kind: post.kind,
                   is_user: Boolean(post.isUser),
                   has_wa: true,
-                })
-              }
+                });
+              }}
               className="animate-wa-pulse flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.99]"
               style={{ backgroundColor: '#25D366' }}
             >
@@ -349,7 +377,7 @@ function TicketSellPostCard({
             </span>
             {tr.ticketTrustGuarantee}
           </p>
-          <p className="flex items-center justify-center gap-1 text-[10px] text-gray-600">
+          <p className="flex items-center gap-1 text-[10px] text-gray-600">
             <Clock className="h-3 w-3 shrink-0" />
             <span>{timeAgo(post.createdAt, tr)}</span>
           </p>
@@ -363,9 +391,7 @@ function resolveSharePost(
   id: string,
   userPosts: TicketWallPost[],
 ): TicketWallPost | undefined {
-  return [...userPosts, ...loadUserTicketPosts(), ...seedTicketWallPosts].find(
-    p => p.id === id && p.kind === 'sell',
-  );
+  return [...userPosts, ...loadUserTicketPosts(), ...seedTicketWallPosts].find(p => p.id === id);
 }
 
 function initialWallPosts(): TicketWallPost[] {
@@ -376,7 +402,7 @@ function initialWallPosts(): TicketWallPost[] {
 
 export function useTicketWall(
   _lang: Lang,
-  options?: { onOpenSharePost?: (post: TicketWallPost) => void },
+  options?: { onOpenSharePost?: (post: TicketWallPost) => void; useDetailPage?: boolean },
 ) {
   const remoteWall = isTicketWallRemoteEnabled();
   const [userPosts, setUserPosts] = useState<TicketWallPost[]>(initialWallPosts);
@@ -384,8 +410,13 @@ export function useTicketWall(
     () => remoteWall && loadCachedSharedTicketPosts().length === 0,
   );
   const [highlightPostId, setHighlightPostId] = useState<string | null>(null);
-  const [pendingShareId, setPendingShareId] = useState<string | null>(() => getTicketIdFromUrl());
-  const [shareLinkLoading, setShareLinkLoading] = useState(() => !!getTicketIdFromUrl());
+  const onDetailPath = typeof window !== 'undefined' && !!parseTicketPostIdFromPath(window.location.pathname);
+  const [pendingShareId, setPendingShareId] = useState<string | null>(() =>
+    options?.useDetailPage && onDetailPath ? null : getTicketIdFromUrl(),
+  );
+  const [shareLinkLoading, setShareLinkLoading] = useState(
+    () => !options?.useDetailPage && !!getTicketIdFromUrl() && !onDetailPath,
+  );
   const shareResolvedRef = useRef(false);
   const shareFetchStartedRef = useRef<string | null>(null);
 
@@ -421,11 +452,18 @@ export function useTicketWall(
         kind: post.kind,
       });
       mergePost(post);
+      if (options?.useDetailPage) {
+        options.onOpenSharePost?.(post);
+        return;
+      }
       setHighlightPostId(post.id);
       options?.onOpenSharePost?.(post);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          scrollToTicketPost(post.id, { behavior: 'instant' });
+          document.getElementById(ticketPostElementId(post.id))?.scrollIntoView({
+            behavior: 'instant',
+            block: 'center',
+          });
         });
       });
       window.setTimeout(() => setHighlightPostId(null), 4500);
@@ -439,7 +477,6 @@ export function useTicketWall(
       shareResolvedRef.current = true;
       setShareLinkLoading(false);
       setPendingShareId(null);
-      clearTicketShareFromUrl();
       openSharedPost(post);
     },
     [openSharedPost],
@@ -462,7 +499,7 @@ export function useTicketWall(
     let active = true;
     void fetchTicketPostById(id).then(fetched => {
       if (!active || shareResolvedRef.current) return;
-      if (fetched?.kind === 'sell') {
+      if (fetched && (fetched.kind === 'sell' || fetched.kind === 'buy')) {
         finishShareResolve(fetched);
         return;
       }
@@ -562,6 +599,7 @@ export function TicketPostGrid({
   highlightPostId = null,
   shareLinkLoading = false,
   wallLoading = false,
+  onViewDetails,
 }: {
   posts: TicketWallPost[];
   tr: Translations;
@@ -572,6 +610,7 @@ export function TicketPostGrid({
   highlightPostId?: string | null;
   shareLinkLoading?: boolean;
   wallLoading?: boolean;
+  onViewDetails?: (postId: string) => void;
 }) {
   const visible = useMemo(
     () => filterSellPosts(posts, { activeCity, activeMatchNumber, activeNation }),
@@ -602,6 +641,7 @@ export function TicketPostGrid({
           tr={tr}
           lang={lang}
           highlighted={highlightPostId === p.id}
+          onViewDetails={onViewDetails}
         />
       ))}
     </div>

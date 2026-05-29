@@ -1,4 +1,5 @@
 import type { Translations } from './i18n';
+import { buildTicketPostPath, parseTicketPostIdFromPath } from './ticketRouting';
 import type { TicketWallPost } from './ticketPosts';
 
 const TICKET_PARAM = 'ticket';
@@ -19,17 +20,17 @@ export function ticketShareOrigin(): string {
 }
 
 export function getTicketIdFromUrl(url: URL = new URL(window.location.href)): string | null {
+  const fromPath = parseTicketPostIdFromPath(url.pathname);
+  if (fromPath) return fromPath;
   const id = url.searchParams.get(TICKET_PARAM)?.trim();
   return id || null;
 }
 
 export function buildTicketShareUrl(post: TicketWallPost, baseUrl?: string): string {
-  const url = new URL(baseUrl ?? `${ticketShareOrigin()}/tickets`);
-  url.pathname = '/tickets';
-  url.search = '';
-  url.hash = '';
-  url.searchParams.set(TICKET_PARAM, post.id);
-  return url.toString();
+  const origin = baseUrl
+    ? new URL(baseUrl).origin
+    : ticketShareOrigin();
+  return `${origin.replace(/\/$/, '')}${buildTicketPostPath(post.id)}`;
 }
 
 export function buildFacebookShareUrl(post: TicketWallPost): string {
@@ -39,6 +40,13 @@ export function buildFacebookShareUrl(post: TicketWallPost): string {
 
 export function clearTicketShareFromUrl(): void {
   const url = new URL(window.location.href);
+  if (parseTicketPostIdFromPath(url.pathname)) {
+    url.pathname = '/tickets';
+    url.search = '';
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState(window.history.state, '', next);
+    return;
+  }
   if (!url.searchParams.has(TICKET_PARAM)) return;
   url.searchParams.delete(TICKET_PARAM);
   const next = `${url.pathname}${url.search}${url.hash}`;
