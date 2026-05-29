@@ -8,7 +8,7 @@ import {
 import { crawlerMetaForRequest } from './seoPages';
 import { resolveSupabaseEnv } from './supabaseEnv';
 
-const SPA_PATHS = new Set(['/', '/index.html', '/tickets', '/cars', '/hotels', '/odds', '/guides']);
+const SPA_PATHS = new Set(['/', '/index.html', '/tickets', '/wanted', '/cars', '/hotels', '/odds', '/guides']);
 
 function parseTicketPostIdFromPath(pathname: string): string | null {
   const p = pathname.replace(/\/$/, '') || '/';

@@ -28,12 +28,13 @@ import {
   type TicketWallPost,
   sortTicketPostsNewestFirst,
 } from './ticketPosts';
-import type { TicketSellPayload } from './ticketPostForm';
+import type { TicketBuyPayload, TicketSellPayload } from './ticketPostForm';
 import { formatCategorySeatLine, getWhatsappHref } from './ticketPostForm';
 import {
   formatMatchKickoffDisplay,
   primaryScheduleMatchForSellPost,
   resolvedSellMatches,
+  filterBuyPosts,
   filterSellPosts,
   sellFixedPriceDisplay,
   sellHasFixedPrice,
@@ -41,6 +42,7 @@ import {
   whatsappPrefillContext,
 } from './sellPostResolve';
 import { parseTicketPostIdFromPath } from './ticketRouting';
+import { filterVisibleBuyPosts, filterVisibleTicketWallPosts } from './ticketWallFilters';
 import { getTicketIdFromUrl, shareTicketPost, ticketPostElementId } from './ticketShare';
 
 /** Clicks on these elements must not open the ticket detail page. */
@@ -387,6 +389,127 @@ function TicketSellPostCard({
   );
 }
 
+function TicketBuyPostCard({
+  post,
+  tr,
+  highlighted,
+  onViewDetails,
+}: {
+  post: TicketWallPost;
+  tr: Translations;
+  highlighted?: boolean;
+  onViewDetails?: (postId: string) => void;
+}) {
+  const p = post.payload as TicketBuyPayload | undefined;
+  const target = p?.targetMatch?.trim() || post.summary;
+  const waHref = getWhatsappHref(post, tr.ticketWhatsappPrefill(whatsappPrefillContext(post)));
+
+  const openDetails = onViewDetails
+    ? (e: React.MouseEvent | React.KeyboardEvent) => {
+        if (isCardNavExcluded(e.target)) return;
+        onViewDetails(post.id);
+      }
+    : undefined;
+
+  return (
+    <article
+      id={ticketPostElementId(post.id)}
+      role={onViewDetails ? 'button' : undefined}
+      tabIndex={onViewDetails ? 0 : undefined}
+      onClick={openDetails}
+      onKeyDown={e => {
+        if (!onViewDetails) return;
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        if (isCardNavExcluded(e.target)) return;
+        e.preventDefault();
+        onViewDetails(post.id);
+      }}
+      className={`group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-700/40 bg-pitch-800/95 transition-all duration-300 hover:-translate-y-0.5 hover:border-sky-500/35 hover:shadow-xl hover:shadow-black/20 ${
+        onViewDetails ? 'cursor-pointer' : ''
+      } ${post.isUser ? 'ring-1 ring-sky-500/25' : ''} ${
+        highlighted ? 'ring-2 ring-grass-400 ring-offset-2 ring-offset-pitch-900' : ''
+      }`}
+    >
+      <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+        <header className="shrink-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/40 bg-sky-900/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-sky-200">
+                <Tag className="h-3 w-3 shrink-0" aria-hidden />
+                {tr.tabTicketBuy}
+              </span>
+              {post.isUser ? (
+                <span className="rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-200/90">
+                  {tr.ticketWallYourPost}
+                </span>
+              ) : null}
+              <TicketShareButton post={post} tr={tr} />
+            </div>
+            {p?.budget?.trim() ? (
+              <p className="shrink-0 text-right text-lg font-extrabold tabular-nums text-sky-300">{p.budget.trim()}</p>
+            ) : null}
+          </div>
+          <p className="mt-3 text-base font-bold leading-snug text-white sm:text-lg">{target}</p>
+        </header>
+
+        <ul className="mt-5 flex-1 space-y-4 py-1">
+          {p ? (
+            <>
+              <InfoGridRow icon="🎫" label={tr.formLabelQuantity}>
+                {p.quantity}
+              </InfoGridRow>
+              {p.category ? (
+                <InfoGridRow icon="📋" label={tr.formLabelCategory}>
+                  {p.category}
+                </InfoGridRow>
+              ) : null}
+              {p.seatDetails?.trim() ? (
+                <InfoGridRow icon={<Ticket className="h-4 w-4 text-sky-300" />} label={tr.formLabelSeatDetails}>
+                  {p.seatDetails.trim()}
+                </InfoGridRow>
+              ) : null}
+              {p.budget?.trim() ? (
+                <InfoGridRow icon="💰" label={tr.formLabelBudget}>
+                  {p.budget.trim()}
+                </InfoGridRow>
+              ) : null}
+            </>
+          ) : null}
+        </ul>
+
+        <footer className="mt-auto shrink-0 space-y-2.5 pt-2">
+          {waHref ? (
+            <a
+              href={waHref}
+              data-card-nav-exclude
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => {
+                e.stopPropagation();
+                track(AnalyticsEvent.TicketWhatsapp, {
+                  post_id: post.id,
+                  kind: post.kind,
+                  is_user: Boolean(post.isUser),
+                  has_wa: true,
+                });
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.99]"
+              style={{ backgroundColor: '#25D366' }}
+            >
+              <MessageCircle className="h-5 w-5 shrink-0" />
+              {tr.contactWhatsApp}
+            </a>
+          ) : null}
+          <p className="flex items-center gap-1 text-[10px] text-gray-600">
+            <Clock className="h-3 w-3 shrink-0" />
+            <span>{timeAgo(post.createdAt, tr)}</span>
+          </p>
+        </footer>
+      </div>
+    </article>
+  );
+}
+
 function resolveSharePost(
   id: string,
   userPosts: TicketWallPost[],
@@ -532,7 +655,7 @@ export function useTicketWall(
     for (const p of seedTicketWallPosts) {
       if (p.kind === 'sell') byId.set(p.id, p);
     }
-    const list = sortTicketPostsNewestFirst(Array.from(byId.values()));
+    const list = filterVisibleTicketWallPosts(sortTicketPostsNewestFirst(Array.from(byId.values())));
     const pinId = highlightPostId ?? pendingShareId;
     if (!pinId) return list;
     const pinned = list.find(p => p.id === pinId);
@@ -540,7 +663,23 @@ export function useTicketWall(
     return [pinned, ...list.filter(p => p.id !== pinId)];
   }, [userPosts, highlightPostId, pendingShareId]);
 
-  return { userPosts, handlePost, sellPosts, highlightPostId, shareLinkLoading, wallLoading };
+  const buyPosts = useMemo(() => {
+    const byId = new Map<string, TicketWallPost>();
+    for (const p of userPosts) {
+      if (p.kind === 'buy') byId.set(p.id, p);
+    }
+    for (const p of seedTicketWallPosts) {
+      if (p.kind === 'buy') byId.set(p.id, p);
+    }
+    const list = filterVisibleBuyPosts(sortTicketPostsNewestFirst(Array.from(byId.values())));
+    const pinId = highlightPostId ?? pendingShareId;
+    if (!pinId) return list;
+    const pinned = list.find(p => p.id === pinId);
+    if (!pinned || pinned.kind !== 'buy') return list;
+    return [pinned, ...list.filter(p => p.id !== pinId)];
+  }, [userPosts, highlightPostId, pendingShareId]);
+
+  return { userPosts, handlePost, sellPosts, buyPosts, highlightPostId, shareLinkLoading, wallLoading };
 }
 
 export { TicketPostFormModal as TicketPostModal } from './TicketPostFormModal';
@@ -640,6 +779,63 @@ export function TicketPostGrid({
           post={p}
           tr={tr}
           lang={lang}
+          highlighted={highlightPostId === p.id}
+          onViewDetails={onViewDetails}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function TicketWantedGrid({
+  posts,
+  tr,
+  activeCity = null,
+  activeMatchNumber = null,
+  activeNation = null,
+  highlightPostId = null,
+  shareLinkLoading = false,
+  wallLoading = false,
+  onViewDetails,
+}: {
+  posts: TicketWallPost[];
+  tr: Translations;
+  activeCity?: string | null;
+  activeMatchNumber?: number | null;
+  activeNation?: string | null;
+  highlightPostId?: string | null;
+  shareLinkLoading?: boolean;
+  wallLoading?: boolean;
+  onViewDetails?: (postId: string) => void;
+}) {
+  const visible = useMemo(
+    () => filterBuyPosts(posts, { activeCity, activeMatchNumber, activeNation }),
+    [posts, activeCity, activeMatchNumber, activeNation],
+  );
+
+  if (shareLinkLoading) {
+    return <TicketShareLinkSkeleton tr={tr} />;
+  }
+
+  if (wallLoading) {
+    return <TicketWallSkeleton tr={tr} />;
+  }
+
+  if (visible.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-gray-700/60 bg-pitch-800/40 px-6 py-14 text-center text-sm text-gray-500">
+        {tr.ticketWallEmptyBuy}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {visible.map(p => (
+        <TicketBuyPostCard
+          key={p.id}
+          post={p}
+          tr={tr}
           highlighted={highlightPostId === p.id}
           onViewDetails={onViewDetails}
         />

@@ -14,6 +14,11 @@ const EN: Record<string, CrawlerPageMeta> = {
     description:
       'Browse live fan ticket listings for FIFA World Cup 2026. Filter by host city and message sellers on WhatsApp.',
   },
+  '/wanted': {
+    title: 'World Cup 2026 Ticket Requests · Fans Looking to Buy · OKcopa',
+    description:
+      'See who is looking for FIFA World Cup 2026 tickets by match and city. Post a buy request on OKcopa.',
+  },
   '/cars': {
     title: 'World Cup 2026 Car Hire Near Stadiums · OKcopa',
     description: 'Car rental listings near World Cup 2026 host cities and stadiums.',
@@ -35,6 +40,7 @@ const EN: Record<string, CrawlerPageMeta> = {
 
 const TAB_TO_PATH: Record<string, string> = {
   tickets: '/tickets',
+  wanted: '/wanted',
   cars: '/cars',
   hotels: '/hotels',
   odds: '/odds',

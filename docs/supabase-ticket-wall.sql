@@ -32,5 +32,10 @@ create policy "ticket_wall_update_all"
   on public.ticket_wall_posts for update to anon, authenticated
   using (true) with check (true);
 
+-- Optional: maintenance scripts (e.g. cleanup-ticket-wall-junk.mjs --apply)
+-- drop policy if exists "ticket_wall_delete_all" on public.ticket_wall_posts;
+-- create policy "ticket_wall_delete_all"
+--   on public.ticket_wall_posts for delete to anon, authenticated using (true);
+
 -- Example payload after adding seat details (sell):
 -- {"matches":["Match 1 · A vs B"],"quantity":2,"category":"Cat 2","seatDetails":"Sec 102 Row 12","whatsapp":"1234567890",...}

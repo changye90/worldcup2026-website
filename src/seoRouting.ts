@@ -1,14 +1,15 @@
 import type { Lang } from './i18n';
 import { buildTicketPostPath, parseTicketPostIdFromPath } from './ticketRouting';
 
-export type ListingTab = 'tickets' | 'cars' | 'hotels' | 'odds';
+export type ListingTab = 'tickets' | 'wanted' | 'cars' | 'hotels' | 'odds';
 
-export const SEO_PATHS = ['/', '/tickets', '/cars', '/hotels', '/odds', '/guides'] as const;
+export const SEO_PATHS = ['/', '/tickets', '/wanted', '/cars', '/hotels', '/odds', '/guides'] as const;
 export type SeoPath = (typeof SEO_PATHS)[number];
 
 const PATH_TO_TAB: Record<string, ListingTab> = {
   '/': 'tickets',
   '/tickets': 'tickets',
+  '/wanted': 'wanted',
   '/cars': 'cars',
   '/hotels': 'hotels',
   '/odds': 'odds',
@@ -16,6 +17,7 @@ const PATH_TO_TAB: Record<string, ListingTab> = {
 
 const TAB_TO_PATH: Record<ListingTab, SeoPath> = {
   tickets: '/tickets',
+  wanted: '/wanted',
   cars: '/cars',
   hotels: '/hotels',
   odds: '/odds',
@@ -115,6 +117,11 @@ const PAGE_META: Record<Lang, Record<SeoPath, PageSeoMeta>> = {
       description:
         'Browse live fan ticket listings for FIFA World Cup 2026. Filter by host city, compare prices, and message sellers on WhatsApp with no buyer fees.',
     },
+    '/wanted': {
+      title: 'World Cup 2026 Ticket Requests · Fans Looking to Buy · OKcopa',
+      description:
+        'See who is looking for FIFA World Cup 2026 tickets by match and city. Post a buy request or message fans who need seats on WhatsApp.',
+    },
     '/cars': {
       title: 'World Cup 2026 Car Hire Near Stadiums · OKcopa',
       description:
@@ -147,6 +154,11 @@ const PAGE_META: Record<Lang, Record<SeoPath, PageSeoMeta>> = {
       description:
         'Anuncios en vivo de boletos del Mundial 2026. Filtra por ciudad sede y escribe al vendedor por WhatsApp.',
     },
+    '/wanted': {
+      title: 'Pedidos de boletos Mundial 2026 · Aficionados que buscan · OKcopa',
+      description:
+        'Quién busca boletos del Mundial 2026 por partido y ciudad. Publica tu pedido o escribe por WhatsApp a quien necesita entradas.',
+    },
     '/cars': {
       title: 'Renta de autos cerca de estadios · Mundial 2026 · OKcopa',
       description:
@@ -178,6 +190,11 @@ const PAGE_META: Record<Lang, Record<SeoPath, PageSeoMeta>> = {
       title: 'Ingressos Copa 2026 à venda · Torcedor a torcedor · OKcopa',
       description:
         'Anúncios ao vivo de ingressos da Copa 2026. Filtre por cidade-sede e fale com o vendedor no WhatsApp.',
+    },
+    '/wanted': {
+      title: 'Pedidos de ingressos Copa 2026 · Torcedores procurando · OKcopa',
+      description:
+        'Quem procura ingressos da Copa 2026 por jogo e cidade. Publique seu pedido ou fale no WhatsApp com quem precisa de ingressos.',
     },
     '/cars': {
       title: 'Aluguel de carros perto dos estádios · Copa 2026 · OKcopa',

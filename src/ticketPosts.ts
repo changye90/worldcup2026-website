@@ -1,6 +1,7 @@
 import type { TicketBuyPayload, TicketSellPayload } from './ticketPostForm';
 import { primaryMatchFlagsForSellPost } from './sellMatchFlags';
 import { resolveTicketPostFlag } from './teamFlags';
+import { filterVisibleTicketWallPosts, ticketWallPostIsJunk } from './ticketWallFilters';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 export type TicketWallKind = 'buy' | 'sell';
@@ -70,7 +71,7 @@ export function loadCachedSharedTicketPosts(): TicketWallPost[] {
     const list = Array.isArray(parsed?.posts)
       ? parsed.posts.filter(p => p.kind === 'buy' || p.kind === 'sell')
       : [];
-    return sortTicketPostsNewestFirst(list);
+    return filterVisibleTicketWallPosts(sortTicketPostsNewestFirst(list));
   } catch {
     return [];
   }
@@ -82,7 +83,10 @@ export function persistCachedSharedTicketPosts(posts: TicketWallPost[]): void {
       SHARED_CACHE_KEY,
       JSON.stringify({
         cachedAt: Date.now(),
-        posts: sortTicketPostsNewestFirst(posts).slice(0, TICKET_WALL_MAX_POSTS),
+        posts: filterVisibleTicketWallPosts(sortTicketPostsNewestFirst(posts)).slice(
+          0,
+          TICKET_WALL_MAX_POSTS,
+        ),
       }),
     );
   } catch {
@@ -100,7 +104,10 @@ export function mergeTicketWallPosts(
   for (const p of [...localPosts, ...sharedPosts]) {
     merged.set(p.id, localIds.has(p.id) ? { ...p, isUser: true } : p);
   }
-  return sortTicketPostsNewestFirst(Array.from(merged.values())).slice(0, TICKET_WALL_MAX_POSTS);
+  return filterVisibleTicketWallPosts(sortTicketPostsNewestFirst(Array.from(merged.values()))).slice(
+    0,
+    TICKET_WALL_MAX_POSTS,
+  );
 }
 
 export function loadUserTicketPosts(): TicketWallPost[] {
@@ -173,7 +180,9 @@ export async function fetchTicketPostById(id: string): Promise<TicketWallPost | 
       .eq('id', id)
       .maybeSingle();
     if (error || !data || (data.kind !== 'buy' && data.kind !== 'sell')) return null;
-    return dbRowToPost(data as TicketWallDbRow, new Set());
+    const post = dbRowToPost(data as TicketWallDbRow, new Set());
+    if (ticketWallPostIsJunk(post)) return null;
+    return post;
   } catch {
     return null;
   }
@@ -189,9 +198,11 @@ export async function loadSharedTicketPosts(localIds: Set<string>): Promise<Tick
       .order('created_at_ms', { ascending: false })
       .limit(TICKET_WALL_MAX_POSTS);
     if (error || !Array.isArray(data)) return null;
-    return data
-      .filter(row => row.kind === 'buy' || row.kind === 'sell')
-      .map(row => dbRowToPost(row as TicketWallDbRow, localIds));
+    return filterVisibleTicketWallPosts(
+      data
+        .filter(row => row.kind === 'buy' || row.kind === 'sell')
+        .map(row => dbRowToPost(row as TicketWallDbRow, localIds)),
+    );
   } catch {
     return null;
   }

@@ -7,7 +7,7 @@ import { buildAppUrl, readUrlAppState, type ListingTab } from './seoRouting';
 import { buildTicketPostPath, migrateLegacyTicketQuery } from './ticketRouting';
 import type { TicketWallPost } from './ticketPosts';
 
-const LEGACY_TABS = new Set(['tickets', 'cars', 'hotels', 'odds']);
+const LEGACY_TABS = new Set(['tickets', 'wanted', 'cars', 'hotels', 'odds']);
 
 export function useAppRouting(
   lang: Lang,
@@ -137,12 +137,13 @@ export function useAppRouting(
 
   const navigateBackFromTicket = useCallback(() => {
     setTicketPostId(null);
+    const tab = ticketPostForSeo?.kind === 'buy' ? 'wanted' : 'tickets';
     const url = new URL(
-      buildAppUrl({ tab: 'tickets', city: activeCity, match: activeMatchNumber, team: activeNation }),
+      buildAppUrl({ tab, city: activeCity, match: activeMatchNumber, team: activeNation }),
     );
     window.history.pushState(null, '', `${url.pathname}${url.search}`);
-    setActiveTab('tickets');
-  }, [activeCity, activeMatchNumber, activeNation, setTicketPostId, setActiveTab]);
+    setActiveTab(tab);
+  }, [activeCity, activeMatchNumber, activeNation, ticketPostForSeo?.kind, setTicketPostId, setActiveTab]);
 
   return { navigateToTab, navigateToTicketPost, navigateBackFromTicket };
 }

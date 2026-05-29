@@ -89,6 +89,53 @@ export function sellPostPassesNationFilter(post: TicketWallPost, nation: string 
   });
 }
 
+function buySearchText(post: TicketWallPost): string {
+  const p = post.payload as TicketBuyPayload | undefined;
+  return `${p?.targetMatch || ''} ${post.summary} ${post.detail || ''}`.toLowerCase();
+}
+
+export function filterBuyPosts(
+  posts: TicketWallPost[],
+  opts: {
+    activeCity: string | null;
+    activeMatchNumber: number | null;
+    activeNation?: string | null;
+  },
+): TicketWallPost[] {
+  if (opts.activeMatchNumber != null) {
+    const m = findMatchByNumber(opts.activeMatchNumber);
+    return posts.filter(p => {
+      const t = buySearchText(p);
+      if (t.includes(`match ${opts.activeMatchNumber}`)) return true;
+      if (!m) return false;
+      const home = m.homeTeam.toLowerCase();
+      const away = m.awayTeam.toLowerCase();
+      return t.includes(home) && t.includes(away);
+    });
+  }
+  if (opts.activeNation) {
+    const nation = opts.activeNation.toLowerCase();
+    return posts.filter(p => {
+      const t = buySearchText(p);
+      if (t.includes(nation)) return true;
+      return matches.some(
+        m => matchInvolvesNation(m, opts.activeNation!) && (t.includes(m.homeTeam.toLowerCase()) || t.includes(m.awayTeam.toLowerCase())),
+      );
+    });
+  }
+  if (opts.activeCity) {
+    const city = opts.activeCity.toLowerCase();
+    return posts.filter(p => {
+      const t = buySearchText(p);
+      if (t.includes(city)) return true;
+      return matches
+        .filter(m => listingBelongsToHostCity(m.city, opts.activeCity!))
+        .some(m => t.includes(m.homeTeam.toLowerCase()) || t.includes(m.awayTeam.toLowerCase()) || t.includes(m.stadium.toLowerCase()));
+    });
+  }
+  return posts;
+}
+
 export function filterSellPosts(
   posts: TicketWallPost[],
   opts: {

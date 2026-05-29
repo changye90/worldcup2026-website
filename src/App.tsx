@@ -3,7 +3,7 @@ import {
   MapPin, ChevronLeft, ChevronRight, Bed, Car, Building2,
   Zap, Calendar, Phone, Clock,
   Flame, ChevronDown, Check, Ticket, X,
-  BarChart3, Tag, Plus, Globe,
+  BarChart3, Tag, Plus, Globe, Search,
 } from 'lucide-react';
 import {
   matches,
@@ -22,14 +22,15 @@ import {
   useTicketWall,
   TicketPostModal,
   TicketPostGrid,
+  TicketWantedGrid,
   TicketSafetyDisclaimer,
 } from './TicketMarketplace';
 import { TicketPostDetailPage } from './TicketPostDetail';
 import { migrateLegacyTicketQuery } from './ticketRouting';
 import { TicketSeoGuides } from './TicketSeoGuides.tsx';
 import { useAppRouting } from './useAppRouting';
-import { readUrlAppState } from './seoRouting';
-import { findMatchByNumber, filterSellPosts } from './sellPostResolve';
+import { readUrlAppState, type ListingTab } from './seoRouting';
+import { findMatchByNumber, filterBuyPosts, filterSellPosts } from './sellPostResolve';
 import { matchInvolvesNation, scheduleNationOptions } from './matchNationFilter';
 import { buildTicketShareUrl, shareTicketPost } from './ticketShare';
 import { buildTicketPostPath, parseTicketPostIdFromPath } from './ticketRouting';
@@ -113,8 +114,6 @@ function stadiumForCarCity(city: string): string | undefined {
   return CAR_CITY_TO_STADIUM[city];
 }
 
-type Tab = 'tickets' | 'cars' | 'hotels' | 'odds';
-
 function dayIsGroupOnly(dayMatches: Match[]): boolean {
   return dayMatches.length > 0 && dayMatches.every(m => m.phase === 'group');
 }
@@ -148,7 +147,7 @@ export default function App() {
     initialMatchRow ? initialUrl.match : null,
   );
   const [activeNation, setActiveNation] = useState<string | null>(initialNation);
-  const [activeTab, setActiveTab] = useState<Tab>(initialUrl.tab);
+  const [activeTab, setActiveTab] = useState<ListingTab>(initialUrl.tab);
   const [postModal, setPostModal] = useState<TicketWallKind | null>(null);
   const [ticketPostId, setTicketPostId] = useState<string | null>(initialUrl.ticket);
   const [recentPost, setRecentPost] = useState<TicketWallPost | null>(null);
@@ -164,7 +163,7 @@ export default function App() {
     setActiveMatchNumber(null);
     setActiveNation(null);
   };
-  const { handlePost, userPosts, sellPosts, highlightPostId, shareLinkLoading, wallLoading } = useTicketWall(
+  const { handlePost, userPosts, sellPosts, buyPosts, highlightPostId, shareLinkLoading, wallLoading } = useTicketWall(
     lang,
     {
       useDetailPage: true,
@@ -201,10 +200,21 @@ export default function App() {
     setActiveNation,
     setTicketPostId,
   );
+
+  const openTicketDetail = (id: string) => {
+    const post = userPosts.find(p => p.id === id);
+    setActiveTab(post?.kind === 'buy' ? 'wanted' : 'tickets');
+    navigateToTicketPost(id);
+  };
+
   const activeMatch = activeMatchNumber != null ? findMatchByNumber(activeMatchNumber) : undefined;
   const filteredSellPosts = useMemo(
     () => filterSellPosts(sellPosts, { activeCity, activeMatchNumber, activeNation }),
     [sellPosts, activeCity, activeMatchNumber, activeNation],
+  );
+  const filteredBuyPosts = useMemo(
+    () => filterBuyPosts(buyPosts, { activeCity, activeMatchNumber, activeNation }),
+    [buyPosts, activeCity, activeMatchNumber, activeNation],
   );
   const nationMatchCount = useMemo(() => {
     if (!activeNation) return 0;
@@ -996,19 +1006,27 @@ export default function App() {
 
         {/* Tabs */}
         <div className="sticky top-[56px] z-40 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-pitch-900/95 backdrop-blur-xl border-b border-gray-800/60 mb-6">
-          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4 bg-pitch-800 rounded-xl p-1 w-full border border-gray-700/50">
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-5 bg-pitch-800 rounded-xl p-1 w-full border border-gray-700/50">
             {([
               {
-                key: 'tickets' as Tab,
+                key: 'tickets' as ListingTab,
                 label: tr.tabTickets,
                 icon: Ticket,
                 count: sellPosts.length,
                 activeCls: 'bg-gradient-to-r from-gold-500 to-gold-600 text-pitch-900 shadow-lg shadow-gold-900/35',
                 badgeCls: 'bg-pitch-900/20 text-pitch-900',
               },
-              { key: 'cars' as Tab, label: tr.tabCars, icon: Car, count: filteredCars.length, activeCls: 'bg-grass-600 text-white shadow-lg shadow-grass-900/40', badgeCls: 'bg-grass-500/50 text-white' },
-              { key: 'hotels' as Tab, label: tr.tabHotels, icon: Building2, count: filteredHotels.length, activeCls: 'bg-grass-600 text-white shadow-lg shadow-grass-900/40', badgeCls: 'bg-grass-500/50 text-white' },
-              { key: 'odds' as Tab, label: tr.tabOdds, icon: BarChart3, activeCls: 'bg-grass-600 text-white shadow-lg shadow-grass-900/40', badgeCls: 'bg-grass-500/50 text-white' },
+              {
+                key: 'wanted' as ListingTab,
+                label: tr.tabWanted,
+                icon: Search,
+                count: buyPosts.length,
+                activeCls: 'bg-gradient-to-r from-sky-500 to-sky-600 text-white shadow-lg shadow-sky-900/35',
+                badgeCls: 'bg-white/20 text-white',
+              },
+              { key: 'cars' as ListingTab, label: tr.tabCars, icon: Car, count: filteredCars.length, activeCls: 'bg-grass-600 text-white shadow-lg shadow-grass-900/40', badgeCls: 'bg-grass-500/50 text-white' },
+              { key: 'hotels' as ListingTab, label: tr.tabHotels, icon: Building2, count: filteredHotels.length, activeCls: 'bg-grass-600 text-white shadow-lg shadow-grass-900/40', badgeCls: 'bg-grass-500/50 text-white' },
+              { key: 'odds' as ListingTab, label: tr.tabOdds, icon: BarChart3, activeCls: 'bg-grass-600 text-white shadow-lg shadow-grass-900/40', badgeCls: 'bg-grass-500/50 text-white' },
             ] as const).map(tab => (
               <button
                 key={tab.key}
@@ -1058,7 +1076,41 @@ export default function App() {
               highlightPostId={highlightPostId}
               shareLinkLoading={shareLinkLoading}
               wallLoading={wallLoading}
-              onViewDetails={navigateToTicketPost}
+              onViewDetails={openTicketDetail}
+            />
+          </div>
+        )}
+        {activeTab === 'wanted' && (
+          <div className="mb-10">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <h4 className="flex items-center gap-2 text-sm font-semibold text-sky-200">
+                <Search className="h-4 w-4 shrink-0" />
+                {tr.tabTicketBuy}
+              </h4>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPostModal('buy')}
+                  className="inline-flex items-center gap-1 rounded-lg border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-200 hover:bg-sky-500/20"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {tr.heroCtaBuy}
+                </button>
+                <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-0.5 text-xs font-mono tabular-nums text-sky-300">
+                  {filteredBuyPosts.length}
+                </span>
+              </div>
+            </div>
+            <TicketWantedGrid
+              posts={buyPosts}
+              tr={tr}
+              activeCity={activeCity}
+              activeMatchNumber={activeMatchNumber}
+              activeNation={activeNation}
+              highlightPostId={highlightPostId}
+              shareLinkLoading={shareLinkLoading}
+              wallLoading={wallLoading}
+              onViewDetails={openTicketDetail}
             />
           </div>
         )}
@@ -1142,7 +1194,7 @@ export default function App() {
               is_user: true,
             });
             handlePost(post);
-            navigateToTicketPost(post.id);
+            openTicketDetail(post.id);
             window.setTimeout(() => {
               setRecentPost(post);
               setRecentPostShareState('idle');

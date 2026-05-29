@@ -1,6 +1,7 @@
 # SPA fallback — each path is a real URL for SEO; Cloudflare serves index.html with 200.
 /tickets   /index.html   200
 /tickets/* /index.html   200
+/wanted    /index.html   200
 /cars      /index.html   200
 /hotels    /index.html   200
 /odds      /index.html   200
