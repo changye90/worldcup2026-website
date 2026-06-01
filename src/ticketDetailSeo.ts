@@ -2,6 +2,7 @@ import type { Lang, Translations } from './i18n';
 import type { TicketBuyPayload } from './ticketPostForm';
 import { formatBudgetDisplay } from './ticketPostForm';
 import type { TicketWallPost } from './ticketPosts';
+import { postHasPlatformGuarantee } from './platformGuarantee';
 import { buildTicketPostPageUrl } from './ticketRouting';
 import {
   formatMatchKickoffDisplay,
@@ -69,10 +70,14 @@ export function ticketPageSeoMeta(
     if (p?.budget?.trim()) extras.push(formatBudgetDisplay(p.budget, tr));
     if (p?.category) extras.push(p.category);
   }
-  const description =
+  let description =
     post.kind === 'sell'
       ? tr.ticketDetailMetaDescSell(match, extras.filter(Boolean).join(' · '))
       : tr.ticketDetailMetaDescBuy(match, extras.filter(Boolean).join(' · '));
+
+  if (post.kind === 'sell' && postHasPlatformGuarantee(post)) {
+    description = `${description} ${tr.verifiedSellerBadge} — ${tr.verifiedPlatformGuaranteeTitle}.`;
+  }
 
   return { title, description };
 }
@@ -129,6 +134,16 @@ export function ticketDetailJsonLd(post: TicketWallPost, tr: Translations): Reco
         description,
         url,
         category: 'FIFA World Cup 2026 match tickets',
+        ...(postHasPlatformGuarantee(post)
+          ? {
+              brand: { '@type': 'Brand', name: 'OKcopa Verified' },
+              additionalProperty: {
+                '@type': 'PropertyValue',
+                name: 'sellerVerification',
+                value: 'OKcopa platform guarantee',
+              },
+            }
+          : {}),
         ...(post.kind === 'sell' && sellHasFixedPrice(post)
           ? {
               offers: {

@@ -30,7 +30,20 @@ export function buildTicketShareUrl(post: TicketWallPost, baseUrl?: string): str
   const origin = baseUrl
     ? new URL(baseUrl).origin
     : ticketShareOrigin();
-  return `${origin.replace(/\/$/, '')}${buildTicketPostPath(post.id)}`;
+  const url = new URL(`${origin.replace(/\/$/, '')}${buildTicketPostPath(post.id)}`);
+  url.searchParams.set('ref', 'share');
+  return url.toString();
+}
+
+export function buildWhatsAppShareUrl(post: TicketWallPost, tr: Translations): string {
+  const message = buildTicketShareMessage(post, tr);
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
+}
+
+export function buildXShareUrl(post: TicketWallPost, tr: Translations): string {
+  const pageUrl = buildTicketShareUrl(post);
+  const text = ticketShareTitle(post, tr);
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pageUrl)}`;
 }
 
 export function buildFacebookShareUrl(post: TicketWallPost): string {

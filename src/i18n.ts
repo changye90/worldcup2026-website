@@ -182,6 +182,17 @@ export const t = {
     ticketDetailSeoLinkGuides: 'Ticket buying guide & price trends',
     ticketDetailSeoSectionTitle: 'About this listing',
     ticketDetailContactOnWall: 'Contact seller on the ticket wall',
+    ticketDetailShareTitle: 'Share this listing',
+    ticketDetailShareHint:
+      'Share the link below — friends open this detail page directly with match, seats, and price (works even when previews fail).',
+    ticketDetailShareFacebook: 'Share on Facebook',
+    ticketDetailWhatsappLeadSell: 'Lock in these tickets',
+    ticketDetailWhatsappHintSell:
+      'Message the seller on WhatsApp now — World Cup listings move fast. Confirm seats and secure your tickets before they’re gone.',
+    ticketDetailWhatsappLeadBuy: 'Have tickets for this match?',
+    ticketDetailWhatsappHintBuy:
+      'Reach out on WhatsApp — this fan is actively looking. Connect now while they’re still buying.',
+    ticketDetailWhatsappCta: 'Message on WhatsApp now',
     verifiedSellerBadge: 'OKcopa Verified',
     verifiedSellerBadgeHint: 'This seller registered on OKcopa and submitted ticket proof',
     verifiedPlatformGuaranteeTitle: 'OKcopa platform guarantee',
@@ -469,6 +480,17 @@ export const t = {
     ticketDetailSeoLinkGuides: 'Guía de compra y tendencias de precio',
     ticketDetailSeoSectionTitle: 'Sobre este anuncio',
     ticketDetailContactOnWall: 'Contactar en el muro de boletos',
+    ticketDetailShareTitle: 'Compartir este anuncio',
+    ticketDetailShareHint:
+      'Comparte el enlace — abren esta página de detalle con partido, asientos y precio (aunque falle la vista previa).',
+    ticketDetailShareFacebook: 'Compartir en Facebook',
+    ticketDetailWhatsappLeadSell: 'Asegura estos boletos',
+    ticketDetailWhatsappHintSell:
+      'Escríbele al vendedor por WhatsApp ya — los anuncios del Mundial se van rápido. Confirma asientos antes de que los tomen.',
+    ticketDetailWhatsappLeadBuy: '¿Tienes boletos para este partido?',
+    ticketDetailWhatsappHintBuy:
+      'Escríbele por WhatsApp — este aficionado sigue buscando. Conecta ahora mientras compra.',
+    ticketDetailWhatsappCta: 'Escribir por WhatsApp ahora',
     verifiedSellerBadge: 'OKcopa Verificado',
     verifiedSellerBadgeHint: 'Vendedor registrado en OKcopa con comprobante de boletos',
     verifiedPlatformGuaranteeTitle: 'Garantía de plataforma OKcopa',
@@ -756,6 +778,17 @@ export const t = {
     ticketDetailSeoLinkGuides: 'Guia de compra e tendências de preço',
     ticketDetailSeoSectionTitle: 'Sobre este anúncio',
     ticketDetailContactOnWall: 'Falar com o vendedor no mural',
+    ticketDetailShareTitle: 'Compartilhar este anúncio',
+    ticketDetailShareHint:
+      'Compartilhe o link — abrem esta página de detalhes com jogo, assentos e preço (mesmo se a prévia falhar).',
+    ticketDetailShareFacebook: 'Compartilhar no Facebook',
+    ticketDetailWhatsappLeadSell: 'Garanta estes ingressos',
+    ticketDetailWhatsappHintSell:
+      'Fale com o vendedor no WhatsApp agora — anúncios da Copa somem rápido. Confirme os assentos antes que acabem.',
+    ticketDetailWhatsappLeadBuy: 'Tem ingressos para este jogo?',
+    ticketDetailWhatsappHintBuy:
+      'Chame no WhatsApp — este torcedor ainda está procurando. Conecte agora enquanto ele compra.',
+    ticketDetailWhatsappCta: 'Falar no WhatsApp agora',
     verifiedSellerBadge: 'OKcopa Verificado',
     verifiedSellerBadgeHint: 'Vendedor registrado na OKcopa com comprovante de ingressos',
     verifiedPlatformGuaranteeTitle: 'Garantia da plataforma OKcopa',

@@ -34,6 +34,7 @@ import { findMatchByNumber, filterBuyPosts, filterSellPosts } from './sellPostRe
 import { matchInvolvesNation, scheduleNationOptions } from './matchNationFilter';
 import { buildTicketShareUrl, shareTicketPost } from './ticketShare';
 import { buildTicketPostPath, parseTicketPostIdFromPath } from './ticketRouting';
+import { postHasPlatformGuarantee } from './platformGuarantee';
 import { HeroCountdown } from './HeroCountdown';
 import type { TicketWallKind, TicketWallPost } from './ticketPosts';
 
@@ -258,6 +259,11 @@ export default function App() {
   const onCopyRecentPostLink = async () => {
     if (!recentPost) return;
     await navigator.clipboard.writeText(buildTicketShareUrl(recentPost));
+    track(AnalyticsEvent.TicketDetailShareCopy, {
+      post_id: recentPost.id,
+      kind: recentPost.kind,
+      source: 'post_success_modal',
+    });
     setRecentPostShareState('copied');
     window.setTimeout(() => setRecentPostShareState('idle'), 1200);
     window.setTimeout(() => setRecentPost(null), 900);
@@ -1192,6 +1198,7 @@ export default function App() {
               kind: post.kind,
               post_id: post.id,
               is_user: true,
+              platform_guarantee: postHasPlatformGuarantee(post),
             });
             handlePost(post);
             openTicketDetail(post.id);

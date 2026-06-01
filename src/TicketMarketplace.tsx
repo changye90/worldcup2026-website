@@ -63,6 +63,7 @@ function TicketShareButton({ post, tr }: { post: TicketWallPost; tr: Translation
       post_id: post.id,
       kind: post.kind,
       is_user: Boolean(post.isUser),
+      source: 'wall',
     });
     const result = await shareTicketPost(post, tr);
     if (result === 'copied') {
@@ -368,6 +369,8 @@ function TicketSellPostCard({
                   kind: post.kind,
                   is_user: Boolean(post.isUser),
                   has_wa: true,
+                  source: 'wall',
+                  placement: 'card',
                 });
               }}
               className="animate-wa-pulse flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.99]"
@@ -497,6 +500,8 @@ function TicketBuyPostCard({
                   kind: post.kind,
                   is_user: Boolean(post.isUser),
                   has_wa: true,
+                  source: 'wall',
+                  placement: 'card',
                 });
               }}
               className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.99]"

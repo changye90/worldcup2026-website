@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Calendar, Check, Clock, MapPin, MessageCircle, Share2, Tag } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, MessageCircle, Tag } from 'lucide-react';
 import { AnalyticsEvent, track } from './analytics';
 import type { Lang, Translations } from './i18n';
 import type { TicketBuyPayload, TicketSellPayload } from './ticketPostForm';
@@ -21,7 +21,8 @@ import {
 } from './ticketDetailSeo';
 import { postHasPlatformGuarantee } from './platformGuarantee';
 import { PlatformGuaranteeBanner, VerifiedSellerBadge } from './VerifiedSellerBadge';
-import { shareTicketPost } from './ticketShare';
+import { readTicketDetailEntrySource, stripTicketShareRefParam } from './ticketDetailEntry';
+import { TicketDetailSharePanel } from './TicketDetailSharePanel';
 import { fetchTicketPostById, type TicketWallPost } from './ticketPosts';
 
 function timeAgo(ts: number, tr: Translations): string {
@@ -204,7 +205,7 @@ export function TicketPostDetailPage({
     wallPosts.find(p => p.id === postId) ?? null,
   );
   const [loading, setLoading] = useState(!post);
-  const [shareCopied, setShareCopied] = useState(false);
+  const [entrySource] = useState(() => readTicketDetailEntrySource());
 
   useEffect(() => {
     const cached = wallPosts.find(p => p.id === postId);
@@ -227,19 +228,15 @@ export function TicketPostDetailPage({
 
   useEffect(() => {
     if (!post) return;
-    track(AnalyticsEvent.TicketDetailView, { post_id: post.id, kind: post.kind });
+    stripTicketShareRefParam();
+    track(AnalyticsEvent.TicketDetailView, {
+      post_id: post.id,
+      kind: post.kind,
+      entry_source: entrySource,
+      verified: postHasPlatformGuarantee(post),
+    });
     applyTicketPostPageSeo(lang, post, tr);
-  }, [post?.id, lang, tr]);
-
-  const onShare = async () => {
-    if (!post) return;
-    track(AnalyticsEvent.TicketShare, { post_id: post.id, kind: post.kind, source: 'detail_page' });
-    const result = await shareTicketPost(post, tr);
-    if (result === 'copied') {
-      setShareCopied(true);
-      window.setTimeout(() => setShareCopied(false), 1600);
-    }
-  };
+  }, [post?.id, lang, tr, entrySource]);
 
   const isSell = post?.kind === 'sell';
   const verified = post ? postHasPlatformGuarantee(post) : false;
@@ -370,14 +367,15 @@ export function TicketPostDetailPage({
                   </div>
                 ) : null}
               </div>
-            </header>
 
-            <div className="space-y-5 px-5 py-5 sm:px-6">
-              {verified ? <PlatformGuaranteeBanner tr={tr} /> : null}
-              {isSell ? <SellDetailBody post={post} tr={tr} lang={lang} /> : <BuyDetailBody post={post} tr={tr} />}
-
-              <div className="flex flex-col gap-2.5">
-                {waHref ? (
+              {waHref ? (
+                <div className="mt-5 rounded-xl border border-[#25D366]/35 bg-gradient-to-br from-[#25D366]/12 via-pitch-950/90 to-pitch-900/90 px-4 py-4 sm:px-5">
+                  <p className="text-base font-bold leading-snug text-white">
+                    {isSell ? tr.ticketDetailWhatsappLeadSell : tr.ticketDetailWhatsappLeadBuy}
+                  </p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-gray-400">
+                    {isSell ? tr.ticketDetailWhatsappHintSell : tr.ticketDetailWhatsappHintBuy}
+                  </p>
                   <a
                     href={waHref}
                     target="_blank"
@@ -388,23 +386,25 @@ export function TicketPostDetailPage({
                         kind: post.kind,
                         source: 'detail_page',
                         has_wa: true,
+                        placement: 'primary',
+                        verified,
                       })
                     }
-                    className="animate-wa-pulse flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.99]"
+                    className="animate-wa-pulse mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg shadow-[#25D366]/20 transition hover:brightness-110 active:scale-[0.99]"
                     style={{ backgroundColor: '#25D366' }}
                   >
                     <MessageCircle className="h-5 w-5 shrink-0" />
-                    {tr.contactWhatsApp}
+                    {tr.ticketDetailWhatsappCta}
                   </a>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => void onShare()}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-600 bg-pitch-900/80 px-4 py-3.5 text-sm font-semibold text-white hover:border-grass-500"
-                >
-                  {shareCopied ? <Check className="h-4 w-4 text-grass-400" /> : <Share2 className="h-4 w-4" />}
-                  {shareCopied ? tr.ticketShareCopied : tr.ticketShare}
-                </button>
+                </div>
+              ) : null}
+            </header>
+
+            <div className="space-y-5 px-5 py-5 sm:px-6">
+              {verified ? <PlatformGuaranteeBanner tr={tr} /> : null}
+              {isSell ? <SellDetailBody post={post} tr={tr} lang={lang} /> : <BuyDetailBody post={post} tr={tr} />}
+
+              <div className="flex flex-col gap-2.5">
                 {!verified ? (
                   <p className="px-1 text-center text-xs leading-relaxed text-gray-500">
                     <span aria-hidden className="mr-0.5">
@@ -413,6 +413,7 @@ export function TicketPostDetailPage({
                     {tr.ticketTrustGuarantee}
                   </p>
                 ) : null}
+                <TicketDetailSharePanel post={post} tr={tr} />
               </div>
             </div>
           </article>

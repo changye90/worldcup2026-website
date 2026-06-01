@@ -57,7 +57,12 @@ export function ogDescriptionForPost(row: TicketOgRow): string {
   const head = `${flag} ${user} ${verb}`;
   const body = detail.slice(0, 220);
   const core = body.length > head.length + 4 ? `${head} — ${body}` : head;
-  const prefix = 'FIFA World Cup 2026 fan-to-fan listing on OKcopa. ';
+  const verified =
+    row.kind === 'sell' &&
+    Boolean(row.payload?.platformGuarantee && row.payload?.verifiedSellerId);
+  const prefix = verified
+    ? 'OKcopa Verified seller · FIFA World Cup 2026 fan-to-fan listing. '
+    : 'FIFA World Cup 2026 fan-to-fan listing on OKcopa. ';
   return `${prefix}${core}`.slice(0, 320);
 }
 

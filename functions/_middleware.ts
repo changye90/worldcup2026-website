@@ -59,6 +59,7 @@ export const onRequest: PagesFunction<Env> = async context => {
   if (ticketId) {
     const imageUrl = `${origin}/og/ticket.jpg?id=${encodeURIComponent(ticketId)}`;
     const supabase = resolveSupabaseEnv(context.env);
+    const canonicalUrl = `${origin}${path}`;
 
     let title = 'OKcopa · World Cup 2026 Tickets';
     let description = 'Fan ticket listings for FIFA World Cup 2026 — buy and sell on OKcopa.';
@@ -77,7 +78,7 @@ export const onRequest: PagesFunction<Env> = async context => {
       pageUrl,
       imageUrl,
       redirectUrl: pageUrl,
-      canonicalUrl: pageUrl.split('#')[0],
+      canonicalUrl,
     });
     return new Response(html, {
       headers: {

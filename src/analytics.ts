@@ -220,12 +220,24 @@ function urlFilterProps(): Record<string, unknown> {
   const city = url.searchParams.get('city');
   const match = url.searchParams.get('match');
   const team = url.searchParams.get('team');
-  const ticket = url.searchParams.get('ticket');
+  const ticketFromQuery = url.searchParams.get('ticket');
+  const path = url.pathname.replace(/\/$/, '') || '/';
+  const ticketFromPath = path.match(/^\/tickets\/([^/]+)$/)?.[1];
+  let ticketId = ticketFromQuery?.trim() || null;
+  if (ticketFromPath) {
+    try {
+      ticketId = decodeURIComponent(ticketFromPath).trim() || ticketId;
+    } catch {
+      ticketId = ticketFromPath.trim() || ticketId;
+    }
+  }
   if (city) out.filter_city = city;
   if (match) out.filter_match = Number.parseInt(match, 10);
   if (team) out.filter_team = team;
-  if (ticket) out.ticket_id = ticket;
-  if (url.pathname.replace(/\/$/, '') === '/guides') out.guides = true;
+  if (ticketId) out.ticket_id = ticketId;
+  if (url.searchParams.get('ref') === 'share') out.share_ref = true;
+  if (path === '/guides') out.guides = true;
+  if (path === '/wanted') out.tab_path = 'wanted';
   return out;
 }
 
@@ -284,6 +296,8 @@ export const AnalyticsEvent = {
   TicketShare: 'ticket_share_click',
   TicketDeepLink: 'ticket_deep_link_view',
   TicketDetailView: 'ticket_detail_view',
+  TicketDetailShareOpen: 'ticket_detail_share_open',
+  TicketDetailShareCopy: 'ticket_detail_share_copy',
   TicketPostSubmit: 'ticket_post_submit',
   VerifiedSellerRegister: 'verified_seller_register',
   VerifiedSellerPost: 'verified_seller_post',
