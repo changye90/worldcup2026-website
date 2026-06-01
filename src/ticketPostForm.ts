@@ -16,6 +16,10 @@ export interface TicketSellPayload {
   whatsapp: string;
   delivery?: string;
   notes?: string;
+  /** Seller opted into OKcopa platform guarantee (verified seller). */
+  platformGuarantee?: boolean;
+  verifiedSellerId?: string;
+  listingProofUrls?: string[];
 }
 
 export interface TicketBuyPayload {
@@ -89,6 +93,9 @@ export function buildSellDetailLines(p: TicketSellPayload, tr: Translations): st
     lines.push(`${tr.formLabelDelivery}: ${p.delivery.trim()}`);
   }
   if (p.notes?.trim()) lines.push(`${tr.formLabelNotes}: ${p.notes.trim()}`);
+  if (p.platformGuarantee && p.verifiedSellerId) {
+    lines.push(`${tr.verifiedSellerBadge}: ${tr.verifiedPlatformGuaranteeTitle}`);
+  }
   lines.push(`${tr.formLabelWhatsapp}: ${p.whatsapp}`);
   return lines;
 }

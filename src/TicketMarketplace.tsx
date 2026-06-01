@@ -43,6 +43,8 @@ import {
 } from './sellPostResolve';
 import { parseTicketPostIdFromPath } from './ticketRouting';
 import { filterVisibleBuyPosts, filterVisibleTicketWallPosts } from './ticketWallFilters';
+import { postHasPlatformGuarantee } from './platformGuarantee';
+import { VerifiedSellerBadge } from './VerifiedSellerBadge';
 import { getTicketIdFromUrl, shareTicketPost, ticketPostElementId } from './ticketShare';
 
 /** Clicks on these elements must not open the ticket detail page. */
@@ -230,6 +232,7 @@ function TicketSellPostCard({
   const stadiumLine = schedule
     ? [schedule.stadium, schedule.city].filter(Boolean).join(', ')
     : null;
+  const verified = postHasPlatformGuarantee(post);
 
   const openDetails = onViewDetails
     ? (e: React.MouseEvent | React.KeyboardEvent) => {
@@ -266,6 +269,7 @@ function TicketSellPostCard({
                 <Tag className="h-3 w-3 shrink-0" aria-hidden />
                 {tr.ticketSellStatusBadge}
               </span>
+              {verified ? <VerifiedSellerBadge tr={tr} /> : null}
               {post.isUser ? (
                 <span className="rounded-full bg-gold-500/15 px-2 py-0.5 text-[10px] font-semibold text-gold-200/90">
                   {tr.ticketWallYourPost}
@@ -375,9 +379,9 @@ function TicketSellPostCard({
           ) : null}
           <p className="px-1 text-center text-xs leading-relaxed text-gray-500">
             <span aria-hidden className="mr-0.5">
-              🔒
+              {verified ? '✓' : '🔒'}
             </span>
-            {tr.ticketTrustGuarantee}
+            {verified ? tr.verifiedPlatformGuaranteeBody : tr.ticketTrustGuarantee}
           </p>
           <p className="flex items-center gap-1 text-[10px] text-gray-600">
             <Clock className="h-3 w-3 shrink-0" />

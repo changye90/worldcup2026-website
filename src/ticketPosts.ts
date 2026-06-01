@@ -36,6 +36,10 @@ let sharedPrefetch: Promise<TicketWallPost[] | null> | null = null;
 
 let supabaseClient: SupabaseClient | null | undefined;
 
+export function getTicketWallSupabase(): SupabaseClient | null {
+  return getSupabaseClient();
+}
+
 function getSupabaseClient(): SupabaseClient | null {
   if (supabaseClient !== undefined) return supabaseClient;
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;

@@ -1,14 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Tag, Search, X } from 'lucide-react';
+import { Loader2, Tag, Search, X } from 'lucide-react';
 import { matches } from './data';
+import { AnalyticsEvent, track } from './analytics';
 import type { Lang, Translations } from './i18n';
 import type { TicketWallKind, TicketWallPost } from './ticketPosts';
+import {
+  PlatformGuaranteeSellSection,
+  validatePlatformGuaranteeSubmit,
+} from './PlatformGuaranteeSellSection';
 import {
   formatMatchOption,
   isValidWhatsapp,
   createWallPostFromSell,
   createWallPostFromBuy,
 } from './ticketPostForm';
+import { loadVerifiedSellerSession, uploadListingProofFiles, type VerifiedSellerProfile } from './verifiedSeller';
 
 const fieldBase =
   'w-full rounded-xl border border-gray-600/80 bg-[rgb(6,12,22)] px-3.5 py-2.5 text-sm focus:border-grass-500/50 focus:outline-none focus:ring-1 focus:ring-grass-500/30';
@@ -85,6 +91,14 @@ function SellForm({
   const [whatsapp, setWhatsapp] = useState('');
   const [delivery, setDelivery] = useState('');
   const [notes, setNotes] = useState('');
+  const [platformGuarantee, setPlatformGuarantee] = useState(false);
+  const [verifiedSeller, setVerifiedSeller] = useState<VerifiedSellerProfile | null>(() =>
+    loadVerifiedSellerSession(),
+  );
+  const [listingProofs, setListingProofs] = useState<File[]>([]);
+  const [guaranteeAgreed, setGuaranteeAgreed] = useState(false);
+  const [guaranteeError, setGuaranteeError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const allMatches = useMemo(() => {
     if (selectedMatches.length > 0) return selectedMatches;
@@ -114,9 +128,38 @@ function SellForm({
   const toggle = (l: string) =>
     setSelectedMatches(p => (p.includes(l) ? p.filter(x => x !== l) : [...p, l]));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ok) return;
+    if (!ok || submitting) return;
+    const gErr = validatePlatformGuaranteeSubmit({
+      enabled: platformGuarantee,
+      session: verifiedSeller,
+      whatsapp: whatsapp.trim(),
+      listingProofs,
+      agreed: guaranteeAgreed,
+      tr,
+    });
+    if (gErr) {
+      setGuaranteeError(gErr);
+      return;
+    }
+    setGuaranteeError(null);
+    setSubmitting(true);
+
+    let listingProofUrls: string[] | undefined;
+    if (platformGuarantee && verifiedSeller) {
+      listingProofUrls = await uploadListingProofFiles(listingProofs, verifiedSeller.id);
+      if (listingProofUrls.length === 0) {
+        setGuaranteeError(tr.verifiedUploadFailed);
+        setSubmitting(false);
+        return;
+      }
+      track(AnalyticsEvent.VerifiedSellerPost, {
+        seller_id: verifiedSeller.id,
+        proof_count: listingProofUrls.length,
+      });
+    }
+
     onSubmit(
       createWallPostFromSell(
         {
@@ -124,17 +167,22 @@ function SellForm({
           quantity: qtyNum!,
           category: category.trim() || undefined,
           seatDetails: seatDetails.trim() || undefined,
-          name: sellerName.trim() || undefined,
+          name: sellerName.trim() || verifiedSeller?.displayName || undefined,
           priceType: priceNegotiable ? 'negotiable' : 'fixed',
           priceAmount: priceNegotiable ? undefined : priceNum!,
           whatsapp: whatsapp.trim(),
           delivery: delivery.trim() || undefined,
           notes: notes.trim() || undefined,
+          platformGuarantee: platformGuarantee && Boolean(verifiedSeller),
+          verifiedSellerId: platformGuarantee ? verifiedSeller?.id : undefined,
+          listingProofUrls,
         },
         lang,
         tr,
       ),
     );
+    setSubmitting(false);
+    setListingProofs([]);
   };
 
   return (
@@ -291,7 +339,30 @@ function SellForm({
         />
       </div>
 
-      <SubmitBtn tr={tr} isSell flash={flash} disabled={!ok} />
+      <PlatformGuaranteeSellSection
+        tr={tr}
+        whatsapp={whatsapp}
+        sellerName={sellerName}
+        enabled={platformGuarantee}
+        onEnabledChange={setPlatformGuarantee}
+        session={verifiedSeller}
+        onSessionChange={setVerifiedSeller}
+        listingProofs={listingProofs}
+        onListingProofsChange={setListingProofs}
+        agreed={guaranteeAgreed}
+        onAgreedChange={setGuaranteeAgreed}
+        onError={setGuaranteeError}
+      />
+      {guaranteeError ? <p className="text-xs text-red-400">{guaranteeError}</p> : null}
+
+      <button
+        type="submit"
+        disabled={!ok || submitting}
+        className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-45 bg-gold-500 text-pitch-950 hover:bg-gold-400`}
+      >
+        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        {flash ? tr.ticketPostSuccess : tr.ticketSellSubmit}
+      </button>
     </form>
   );
 }

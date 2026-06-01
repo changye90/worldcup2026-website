@@ -285,6 +285,8 @@ export const AnalyticsEvent = {
   TicketDeepLink: 'ticket_deep_link_view',
   TicketDetailView: 'ticket_detail_view',
   TicketPostSubmit: 'ticket_post_submit',
+  VerifiedSellerRegister: 'verified_seller_register',
+  VerifiedSellerPost: 'verified_seller_post',
   CarCall: 'car_call_click',
   HotelCall: 'hotel_call_click',
   HeaderSchedule: 'header_schedule_click',

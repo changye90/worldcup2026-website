@@ -19,6 +19,8 @@ import {
   ticketDetailSeoParagraphs,
   ticketDetailSubhead,
 } from './ticketDetailSeo';
+import { postHasPlatformGuarantee } from './platformGuarantee';
+import { PlatformGuaranteeBanner, VerifiedSellerBadge } from './VerifiedSellerBadge';
 import { shareTicketPost } from './ticketShare';
 import { fetchTicketPostById, type TicketWallPost } from './ticketPosts';
 
@@ -240,6 +242,7 @@ export function TicketPostDetailPage({
   };
 
   const isSell = post?.kind === 'sell';
+  const verified = post ? postHasPlatformGuarantee(post) : false;
   const schedule = post && isSell ? primaryScheduleMatchForSellPost(post) : null;
   const heading = post ? ticketDetailMatchLabel(post, tr) : '';
   const subhead = post ? ticketDetailSubhead(post, lang, tr) : null;
@@ -305,8 +308,13 @@ export function TicketPostDetailPage({
                     }`}
                   >
                     <Tag className="h-3 w-3 shrink-0" />
-                    {isSell ? tr.ticketSellStatusBadge : tr.tabTicketBuy}
+                  {isSell ? tr.ticketSellStatusBadge : tr.tabTicketBuy}
+                </span>
+                {verified ? (
+                  <span className="mt-2 block">
+                    <VerifiedSellerBadge tr={tr} size="md" />
                   </span>
+                ) : null}
 
                   <h1 className="mt-3 text-xl font-bold leading-snug text-white sm:text-2xl">
                     {schedule ? (
@@ -365,6 +373,7 @@ export function TicketPostDetailPage({
             </header>
 
             <div className="space-y-5 px-5 py-5 sm:px-6">
+              {verified ? <PlatformGuaranteeBanner tr={tr} /> : null}
               {isSell ? <SellDetailBody post={post} tr={tr} lang={lang} /> : <BuyDetailBody post={post} tr={tr} />}
 
               <div className="flex flex-col gap-2.5">
@@ -396,12 +405,14 @@ export function TicketPostDetailPage({
                   {shareCopied ? <Check className="h-4 w-4 text-grass-400" /> : <Share2 className="h-4 w-4" />}
                   {shareCopied ? tr.ticketShareCopied : tr.ticketShare}
                 </button>
-                <p className="px-1 text-center text-xs leading-relaxed text-gray-500">
-                  <span aria-hidden className="mr-0.5">
-                    🔒
-                  </span>
-                  {tr.ticketTrustGuarantee}
-                </p>
+                {!verified ? (
+                  <p className="px-1 text-center text-xs leading-relaxed text-gray-500">
+                    <span aria-hidden className="mr-0.5">
+                      🔒
+                    </span>
+                    {tr.ticketTrustGuarantee}
+                  </p>
+                ) : null}
               </div>
             </div>
           </article>
