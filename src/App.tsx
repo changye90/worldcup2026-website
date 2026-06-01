@@ -6,6 +6,12 @@ import {
   BarChart3, Tag, Plus, Globe, Search, LogIn, LogOut,
 } from 'lucide-react';
 import { useAuth } from './auth';
+import {
+  AUTH_RETURN_SELL_GUARANTEE,
+  peekAuthReturnIntent,
+  consumeAuthReturnIntent,
+  saveAuthReturnIntent,
+} from './authReturn';
 import { AuthModal } from './AuthModal';
 import { clearVerifiedSellerSession } from './verifiedSeller';
 import {
@@ -153,6 +159,8 @@ export default function App() {
   const [activeNation, setActiveNation] = useState<string | null>(initialNation);
   const [activeTab, setActiveTab] = useState<ListingTab>(initialUrl.tab);
   const [postModal, setPostModal] = useState<TicketWallKind | null>(null);
+  const [sellGuaranteeOnOpen, setSellGuaranteeOnOpen] = useState(false);
+  const authReturnHandled = useRef(false);
   const [ticketPostId, setTicketPostId] = useState<string | null>(initialUrl.ticket);
   const [recentPost, setRecentPost] = useState<TicketWallPost | null>(null);
   const [recentPostShareState, setRecentPostShareState] = useState<'idle' | 'copied'>('idle');
@@ -240,7 +248,53 @@ export default function App() {
   const hostCitiesRef = useRef<HTMLDivElement>(null);
   const scheduleSectionRef = useRef<HTMLElement>(null);
   const tr = t[lang];
-  const { user, authConfigured, openAuthModal, signOut } = useAuth();
+  const { user, loading: authLoading, authConfigured, openAuthModal, signOut, closeAuthModal } =
+    useAuth();
+
+  /** After email verification link: return to sell form + platform guarantee section. */
+  useEffect(() => {
+    if (authLoading || authReturnHandled.current) return;
+
+    const url = new URL(window.location.href);
+    const authReturn = url.searchParams.get('auth_return');
+    const fromQuery = authReturn === AUTH_RETURN_SELL_GUARANTEE;
+    const intent = peekAuthReturnIntent();
+
+    if (!fromQuery && !intent) return;
+
+    const wantGuarantee = fromQuery || Boolean(intent?.platformGuarantee);
+
+    const finishRestore = () => {
+      consumeAuthReturnIntent();
+      authReturnHandled.current = true;
+      if (ticketPostId) setTicketPostId(null);
+      setActiveTab('tickets');
+      setPostModal('sell');
+      if (wantGuarantee) setSellGuaranteeOnOpen(true);
+      if (authReturn) {
+        url.searchParams.delete('auth_return');
+        window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`);
+      }
+      closeAuthModal();
+      window.setTimeout(() => {
+        listingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
+    };
+
+    if (!user) {
+      saveAuthReturnIntent({ openSellModal: true, platformGuarantee: wantGuarantee });
+      openAuthModal('sign_in', 'verified_listing');
+      return;
+    }
+
+    if (!user.emailVerified) {
+      saveAuthReturnIntent({ openSellModal: true, platformGuarantee: wantGuarantee });
+      openAuthModal('sign_in', 'verified_listing');
+      return;
+    }
+
+    finishRestore();
+  }, [authLoading, user, ticketPostId, openAuthModal, closeAuthModal]);
 
   const onShareRecentPost = async () => {
     if (!recentPost) return;
@@ -1241,7 +1295,11 @@ export default function App() {
           kind={postModal}
           lang={lang}
           tr={tr}
-          onClose={() => setPostModal(null)}
+          openWithPlatformGuarantee={sellGuaranteeOnOpen}
+          onClose={() => {
+            setPostModal(null);
+            setSellGuaranteeOnOpen(false);
+          }}
           onSubmit={post => {
             track(AnalyticsEvent.TicketPostSubmit, {
               kind: post.kind,

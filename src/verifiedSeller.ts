@@ -86,7 +86,12 @@ export async function uploadTicketProofImage(
     cacheControl: '3600',
     upsert: false,
   });
-  if (error) return null;
+  if (error) {
+    if (import.meta.env.DEV) {
+      console.warn('[okcopa] ticket-proofs upload', error.message, { path });
+    }
+    return null;
+  }
   const { data } = supabase.storage.from(PROOFS_BUCKET).getPublicUrl(path);
   return data.publicUrl || null;
 }

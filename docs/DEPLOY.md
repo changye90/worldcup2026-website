@@ -38,7 +38,13 @@ Supabase 表 `ticket_wall_posts` 需已建表，且 RLS 允许 `anon` 的 `selec
 
 **访问与点击埋点**（PV/UV、WhatsApp、电话、头部/赛程按钮）写入表 `site_analytics_events`，使用同一套 `VITE_SUPABASE_*`。建表 SQL：[docs/supabase-analytics.sql](./supabase-analytics.sql)（只需执行一次）。
 
-**OKcopa Verified 账号（邮箱注册 + 验证）**：普通发帖仍为游客；勾选平台担保需登录且邮箱已验证。在 Supabase → Authentication → Providers 开启 **Email**，并打开 **Confirm email**。SQL Editor 依次执行 [docs/supabase-verified-sellers.sql](./supabase-verified-sellers.sql)、[docs/supabase-auth-accounts.sql](./supabase-auth-accounts.sql)。Site URL / Redirect URLs 加入 `https://okcopa.com/tickets`（及本地预览地址）。
+**OKcopa Verified 账号（邮箱注册 + 验证）**：普通发帖仍为游客；勾选平台担保需登录且邮箱已验证。在 Supabase → Authentication → Providers 开启 **Email**，并打开 **Confirm email**。SQL Editor 依次执行 [docs/supabase-verified-sellers.sql](./supabase-verified-sellers.sql)、[docs/supabase-auth-accounts.sql](./supabase-auth-accounts.sql)、[docs/supabase-storage-ticket-proofs.sql](./supabase-storage-ticket-proofs.sql)（Storage 里先有 **ticket-proofs** 公开桶）。Site URL / Redirect URLs 加入 `https://okcopa.com/tickets` 与 `https://okcopa.com/tickets?auth_return=sell-guarantee`（及 `/**` 通配）。
+
+**验证邮件标题/发件人显示（非代码，在 Supabase 后台改）**：
+
+1. **Authentication → Emails → Templates → Confirm sign up** → 展开 → **Subject** 改为例如：`Confirm your OKcopa account`（或 `确认你的 OKcopa 账号`）→ Save。
+2. 其他模板（Reset password、Magic link 等）可按需同样改 Subject。
+3. 若发件人仍显示 `Supabase Auth`：在 **Authentication → Emails → SMTP Settings** 配置自定义 SMTP 后，将 **Sender name** 设为 `OKcopa`；或 **Project Settings → General → Project name** 改为 `OKcopa`（部分模板会引用项目名）。内置免费发信服务发件人名称往往仍是 Supabase，要完全品牌化需自建 SMTP。
 
 表单字段（含 `category`、`seatDetails`）存在 **`payload` jsonb** 里，加座位详情**不用改表结构**，部署新前端即可。
 

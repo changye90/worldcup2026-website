@@ -30,6 +30,5 @@ create policy "verified_sellers_update_own"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- Storage ticket-proofs: allow authenticated uploads under own user_id folder (optional tighten)
--- If uploads fail after this migration, add in Storage → ticket-proofs → Policies:
---   INSERT for authenticated: bucket_id = 'ticket-proofs' AND (storage.foldername(name))[1] = auth.uid()::text
+-- Storage: after this file, run docs/supabase-storage-ticket-proofs.sql
+-- (creates INSERT for anon + authenticated on bucket ticket-proofs; fixes upload after login)

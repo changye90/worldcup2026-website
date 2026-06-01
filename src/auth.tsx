@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
+import { AUTH_RETURN_SELL_GUARANTEE, saveAuthReturnIntent } from './authReturn';
 import { getSupabase } from './supabaseClient';
 
 export interface AuthUser {
@@ -50,7 +51,22 @@ function authRedirectUrl(): string {
   const origin =
     import.meta.env.VITE_SITE_ORIGIN?.trim() ||
     (typeof window !== 'undefined' ? window.location.origin : 'https://okcopa.com');
-  return `${origin.replace(/\/$/, '')}/tickets`;
+  const url = new URL(`${origin.replace(/\/$/, '')}/tickets`);
+  url.searchParams.set('auth_return', AUTH_RETURN_SELL_GUARANTEE);
+  return url.toString();
+}
+
+/** Remove #access_token=… from the address bar after email confirmation. */
+async function scrubAuthHashFromUrl(supabase: NonNullable<ReturnType<typeof getSupabase>>): Promise<void> {
+  const hash = window.location.hash;
+  if (!hash.includes('access_token=') && !hash.includes('error=') && !hash.includes('type=signup')) {
+    return;
+  }
+  await supabase.auth.getSession();
+  const url = new URL(window.location.href);
+  url.hash = '';
+  const next = `${url.pathname}${url.search}`;
+  window.history.replaceState(window.history.state, '', next);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -75,10 +91,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, next) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, next) => {
       setSession(next);
       setLoading(false);
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        void scrubAuthHashFromUrl(supabase);
+      }
     });
+
+    if (window.location.hash.includes('access_token=')) {
+      void scrubAuthHashFromUrl(supabase);
+    }
 
     return () => {
       active = false;
@@ -131,6 +154,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const openAuthModal = useCallback(
     (mode: AuthModalMode = 'sign_in', reason: 'verified_listing' | 'header' = 'header') => {
+      if (reason === 'verified_listing') {
+        saveAuthReturnIntent({ openSellModal: true, platformGuarantee: true });
+      }
       setAuthModalMode(mode);
       setAuthModalReason(reason);
       setAuthModalOpen(true);

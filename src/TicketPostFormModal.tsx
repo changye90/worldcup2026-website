@@ -15,6 +15,7 @@ import {
   createWallPostFromBuy,
 } from './ticketPostForm';
 import { useAuth } from './auth';
+import { consumeSellGuaranteePending } from './authReturn';
 import { loadVerifiedSellerSession, uploadListingProofFiles, type VerifiedSellerProfile } from './verifiedSeller';
 
 const fieldBase =
@@ -73,12 +74,14 @@ function SellForm({
   matchOptions,
   onSubmit,
   flash,
+  openWithPlatformGuarantee,
 }: {
   tr: Translations;
   lang: Lang;
   matchOptions: string[];
   onSubmit: (p: TicketWallPost) => void;
   flash: boolean;
+  openWithPlatformGuarantee?: boolean;
 }) {
   const [selectedMatches, setSelectedMatches] = useState<string[]>([]);
   const [customMatch, setCustomMatch] = useState('');
@@ -101,6 +104,12 @@ function SellForm({
   const [guaranteeError, setGuaranteeError] = useState<string | null>(null);
   const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (openWithPlatformGuarantee || consumeSellGuaranteePending()) {
+      setPlatformGuarantee(true);
+    }
+  }, [openWithPlatformGuarantee]);
 
   const allMatches = useMemo(() => {
     if (selectedMatches.length > 0) return selectedMatches;
@@ -492,12 +501,14 @@ export function TicketPostFormModal({
   tr,
   onClose,
   onSubmit,
+  openWithPlatformGuarantee,
 }: {
   kind: TicketWallKind;
   lang: Lang;
   tr: Translations;
   onClose: () => void;
   onSubmit: (post: TicketWallPost) => void;
+  openWithPlatformGuarantee?: boolean;
 }) {
   const [flash, setFlash] = useState(false);
   const isSell = kind === 'sell';
@@ -561,7 +572,14 @@ export function TicketPostFormModal({
         </div>
         <div className="flex-1 overflow-y-auto px-5 pb-5 pt-4">
           {isSell ? (
-            <SellForm tr={tr} lang={lang} matchOptions={matchOptions} onSubmit={submit} flash={flash} />
+            <SellForm
+              tr={tr}
+              lang={lang}
+              matchOptions={matchOptions}
+              onSubmit={submit}
+              flash={flash}
+              openWithPlatformGuarantee={openWithPlatformGuarantee}
+            />
           ) : (
             <BuyForm tr={tr} lang={lang} onSubmit={submit} flash={flash} />
           )}

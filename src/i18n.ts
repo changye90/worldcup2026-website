@@ -220,7 +220,8 @@ export const t = {
     verifiedRegisterProofRequired: 'Upload at least one ticket screenshot.',
     verifiedListingProofRequired: 'Upload ticket proof for this listing.',
     verifiedAgreeRequired: 'Check the platform guarantee agreement.',
-    verifiedUploadFailed: 'Upload failed — check Supabase storage bucket ticket-proofs is configured.',
+    verifiedUploadFailed:
+      'Upload failed — in Supabase run docs/supabase-storage-ticket-proofs.sql and ensure bucket ticket-proofs exists (public). Logged-in uploads need the authenticated INSERT policy.',
     verifiedRegisterFailed: 'Registration failed — try again.',
     verifiedWhatsappMustMatch: 'Listing WhatsApp must match your registered seller number.',
     authSignIn: 'Sign in',
