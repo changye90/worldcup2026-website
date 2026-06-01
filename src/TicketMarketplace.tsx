@@ -264,11 +264,11 @@ function TicketSellPostCard({
       <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
         {/* Zone 1 — status, price anchor, buyer-fee badge */}
         <header className="shrink-0">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-grass-600/40 bg-grass-900/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-grass-300">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <span className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-grass-600/40 bg-grass-900/50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-grass-300">
                 <Tag className="h-3 w-3 shrink-0" aria-hidden />
-                {tr.ticketSellStatusBadge}
+                <span className="truncate">{tr.ticketSellStatusBadge}</span>
               </span>
               {verified ? <VerifiedSellerBadge tr={tr} /> : null}
               {post.isUser ? (
@@ -279,7 +279,7 @@ function TicketSellPostCard({
               <TicketShareButton post={post} tr={tr} />
             </div>
 
-            <div className="shrink-0 text-right">
+            <div className="shrink-0 sm:text-right">
               {hasFixed && fixedPrice ? (
                 <p className="text-2xl font-extrabold leading-none tabular-nums tracking-tight text-gold-300 sm:text-[1.65rem]">
                   {fixedPrice}
@@ -690,7 +690,23 @@ export function useTicketWall(
     return [pinned, ...list.filter(p => p.id !== pinId)];
   }, [userPosts, highlightPostId, pendingShareId]);
 
-  return { userPosts, handlePost, sellPosts, buyPosts, highlightPostId, shareLinkLoading, wallLoading };
+  const refreshWall = useCallback(() => {
+    const localPosts = loadUserTicketPosts();
+    void loadSharedTicketPosts(new Set(localPosts.map(p => p.id))).then(shared => {
+      setUserPosts(mergeTicketWallPosts(localPosts, shared ?? []));
+    });
+  }, []);
+
+  return {
+    userPosts,
+    handlePost,
+    refreshWall,
+    sellPosts,
+    buyPosts,
+    highlightPostId,
+    shareLinkLoading,
+    wallLoading,
+  };
 }
 
 export { TicketPostFormModal as TicketPostModal } from './TicketPostFormModal';

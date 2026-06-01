@@ -120,6 +120,11 @@ export function persistUserTicketPost(post: TicketWallPost): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 
+export function removeUserTicketPost(id: string): void {
+  const next = loadUserTicketPosts().filter(p => p.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+}
+
 interface TicketWallDbRow {
   id: string;
   kind: TicketWallKind;

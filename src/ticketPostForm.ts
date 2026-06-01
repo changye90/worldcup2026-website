@@ -5,7 +5,12 @@ import { defaultPostMeta } from './ticketPosts';
 import { primaryMatchFlagsForSellPost } from './sellMatchFlags';
 import { resolveTicketPostFlag } from './teamFlags';
 
-export interface TicketSellPayload {
+export interface TicketListingMeta {
+  ownerUserId?: string;
+  listingStatus?: 'active' | 'archived';
+}
+
+export interface TicketSellPayload extends TicketListingMeta {
   matches: string[];
   quantity: number;
   category?: string;
@@ -22,7 +27,7 @@ export interface TicketSellPayload {
   listingProofUrls?: string[];
 }
 
-export interface TicketBuyPayload {
+export interface TicketBuyPayload extends TicketListingMeta {
   targetMatch: string;
   quantity: number;
   category?: string;
@@ -31,8 +36,15 @@ export interface TicketBuyPayload {
   whatsapp: string;
 }
 
+function shortMatchDate(iso: string): string {
+  const d = new Date(`${iso}T12:00:00`);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/** Wall/schedules use FIFA match numbers; fan-facing picker uses teams + city + date only. */
 export function formatMatchOption(m: Match): string {
-  return `Match ${m.matchNumber} · ${m.homeTeam} vs ${m.awayTeam}`;
+  const place = [m.stadium, m.city].filter(Boolean).join(', ');
+  return `${m.homeTeam} vs ${m.awayTeam} · ${place || m.city} · ${shortMatchDate(m.date)}`;
 }
 
 export function whatsappDigits(phone: string): string {

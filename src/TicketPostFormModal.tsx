@@ -16,6 +16,7 @@ import {
 } from './ticketPostForm';
 import { useAuth } from './auth';
 import { consumeSellGuaranteePending } from './authReturn';
+import { attachOwnerToPost } from './myListings';
 import { loadVerifiedSellerSession, uploadListingProofFiles, type VerifiedSellerProfile } from './verifiedSeller';
 
 const fieldBase =
@@ -86,6 +87,7 @@ function SellForm({
   const [selectedMatches, setSelectedMatches] = useState<string[]>([]);
   const [customMatch, setCustomMatch] = useState('');
   const [matchFilter, setMatchFilter] = useState('');
+  const [matchPickerOpen, setMatchPickerOpen] = useState(false);
   const [quantity, setQuantity] = useState('');
   const [category, setCategory] = useState('');
   const [seatDetails, setSeatDetails] = useState('');
@@ -173,24 +175,27 @@ function SellForm({
     }
 
     onSubmit(
-      createWallPostFromSell(
-        {
-          matches: allMatches,
-          quantity: qtyNum!,
-          category: category.trim() || undefined,
-          seatDetails: seatDetails.trim() || undefined,
-          name: sellerName.trim() || verifiedSeller?.displayName || undefined,
-          priceType: priceNegotiable ? 'negotiable' : 'fixed',
-          priceAmount: priceNegotiable ? undefined : priceNum!,
-          whatsapp: whatsapp.trim(),
-          delivery: delivery.trim() || undefined,
-          notes: notes.trim() || undefined,
-          platformGuarantee: platformGuarantee && Boolean(verifiedSeller),
-          verifiedSellerId: platformGuarantee ? verifiedSeller?.id : undefined,
-          listingProofUrls,
-        },
-        lang,
-        tr,
+      attachOwnerToPost(
+        createWallPostFromSell(
+          {
+            matches: allMatches,
+            quantity: qtyNum!,
+            category: category.trim() || undefined,
+            seatDetails: seatDetails.trim() || undefined,
+            name: sellerName.trim() || verifiedSeller?.displayName || undefined,
+            priceType: priceNegotiable ? 'negotiable' : 'fixed',
+            priceAmount: priceNegotiable ? undefined : priceNum!,
+            whatsapp: whatsapp.trim(),
+            delivery: delivery.trim() || undefined,
+            notes: notes.trim() || undefined,
+            platformGuarantee: platformGuarantee && Boolean(verifiedSeller),
+            verifiedSellerId: platformGuarantee ? verifiedSeller?.id : undefined,
+            listingProofUrls,
+          },
+          lang,
+          tr,
+        ),
+        user?.id ?? null,
       ),
     );
     setSubmitting(false);
@@ -205,31 +210,50 @@ function SellForm({
         <input
           type="search"
           value={matchFilter}
-          onChange={e => setMatchFilter(e.target.value)}
+          onChange={e => {
+            setMatchFilter(e.target.value);
+            if (e.target.value.trim().length >= 2) setMatchPickerOpen(true);
+          }}
           placeholder={tr.formMatchFilterPlaceholder}
           className={`${sellFieldCls} mt-2`}
           autoComplete="off"
         />
-        <div className="mt-2 max-h-[min(45vh,280px)] space-y-1.5 overflow-y-auto rounded-xl border border-gray-700/60 bg-[rgb(6,12,22)]/90 p-2">
-          {filteredOptions.length === 0 ? (
-            <p className="px-2 py-3 text-center text-xs text-gray-500">{tr.formMatchFilterNoResults}</p>
-          ) : (
-            filteredOptions.map(label => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => toggle(label)}
-                className={`w-full rounded-lg px-2.5 py-1.5 text-left text-xs ${
-                  selectedMatches.includes(label)
-                    ? 'border border-gold-500/50 bg-gold-500/15 text-gold-100'
-                    : 'text-gray-400 hover:bg-pitch-800'
-                }`}
-              >
-                {label}
-              </button>
-            ))
-          )}
-        </div>
+        {!matchPickerOpen && matchFilter.trim().length < 2 ? (
+          <button
+            type="button"
+            onClick={() => setMatchPickerOpen(true)}
+            className="mt-2 w-full rounded-xl border border-dashed border-gray-600/80 bg-pitch-900/50 px-3 py-2.5 text-left text-xs font-medium text-gray-400 hover:border-gold-500/40 hover:text-gold-200"
+          >
+            {tr.formMatchBrowse}
+          </button>
+        ) : (
+          <div
+            className={`mt-2 space-y-1.5 overflow-y-auto rounded-xl border border-gray-700/60 bg-[rgb(6,12,22)]/90 p-2 ${
+              matchFilter.trim().length >= 2
+                ? 'max-h-[min(40vh,240px)]'
+                : 'max-h-[2.75rem]'
+            }`}
+          >
+            {filteredOptions.length === 0 ? (
+              <p className="px-2 py-3 text-center text-xs text-gray-500">{tr.formMatchFilterNoResults}</p>
+            ) : (
+              filteredOptions.map(label => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => toggle(label)}
+                  className={`w-full rounded-lg px-2.5 py-1.5 text-left text-xs leading-snug ${
+                    selectedMatches.includes(label)
+                      ? 'border border-gold-500/50 bg-gold-500/15 text-gold-100'
+                      : 'text-gray-400 hover:bg-pitch-800'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))
+            )}
+          </div>
+        )}
         {selectedMatches.length === 0 ? (
           <input
             type="text"
@@ -396,6 +420,7 @@ function BuyForm({
   const [seatDetails, setSeatDetails] = useState('');
   const [budget, setBudget] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const { user } = useAuth();
   const qtyNum = parseQuantityInput(quantity);
   const ok = targetMatch.trim() && qtyNum != null && isValidWhatsapp(whatsapp);
 
@@ -403,17 +428,20 @@ function BuyForm({
     e.preventDefault();
     if (!ok) return;
     onSubmit(
-      createWallPostFromBuy(
-        {
-          targetMatch: targetMatch.trim(),
-          quantity: qtyNum!,
-          category: category.trim() || undefined,
-          seatDetails: seatDetails.trim() || undefined,
-          budget: budget.trim() || undefined,
-          whatsapp: whatsapp.trim(),
-        },
-        lang,
-        tr,
+      attachOwnerToPost(
+        createWallPostFromBuy(
+          {
+            targetMatch: targetMatch.trim(),
+            quantity: qtyNum!,
+            category: category.trim() || undefined,
+            seatDetails: seatDetails.trim() || undefined,
+            budget: budget.trim() || undefined,
+            whatsapp: whatsapp.trim(),
+          },
+          lang,
+          tr,
+        ),
+        user?.id ?? null,
       ),
     );
   };

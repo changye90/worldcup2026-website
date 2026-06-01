@@ -3,7 +3,7 @@ import {
   MapPin, ChevronLeft, ChevronRight, Bed, Car, Building2,
   Zap, Calendar, Phone, Clock,
   Flame, ChevronDown, Check, Ticket, X,
-  BarChart3, Tag, Plus, Globe, Search, LogIn, LogOut,
+  BarChart3, Tag, Plus, Globe, Search, LogIn, LogOut, List,
 } from 'lucide-react';
 import { useAuth } from './auth';
 import {
@@ -13,6 +13,7 @@ import {
   saveAuthReturnIntent,
 } from './authReturn';
 import { AuthModal } from './AuthModal';
+import { MyAccountModal } from './MyAccountModal';
 import { clearVerifiedSellerSession } from './verifiedSeller';
 import {
   matches,
@@ -160,6 +161,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ListingTab>(initialUrl.tab);
   const [postModal, setPostModal] = useState<TicketWallKind | null>(null);
   const [sellGuaranteeOnOpen, setSellGuaranteeOnOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const authReturnHandled = useRef(false);
   const [ticketPostId, setTicketPostId] = useState<string | null>(initialUrl.ticket);
   const [recentPost, setRecentPost] = useState<TicketWallPost | null>(null);
@@ -175,7 +177,8 @@ export default function App() {
     setActiveMatchNumber(null);
     setActiveNation(null);
   };
-  const { handlePost, userPosts, sellPosts, buyPosts, highlightPostId, shareLinkLoading, wallLoading } = useTicketWall(
+  const { handlePost, refreshWall, userPosts, sellPosts, buyPosts, highlightPostId, shareLinkLoading, wallLoading } =
+    useTicketWall(
     lang,
     {
       useDetailPage: true,
@@ -453,15 +456,18 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
 
           {/* Brand */}
-          <div className="flex-shrink-0">
-            <h1 className="text-base sm:text-[17px] font-bold tracking-tight text-white leading-tight">
-              {tr.brand} <span className="text-grass-400">· World Cup 2026</span>
+          <div className="min-w-0 max-w-[38%] flex-shrink sm:max-w-none">
+            <h1 className="truncate text-sm font-bold leading-tight tracking-tight text-white sm:text-[17px]">
+              <span>{tr.brand}</span>
+              <span className="text-grass-400"> · WC 2026</span>
             </h1>
-            <p className="text-[9px] text-gray-400 tracking-widest uppercase leading-none">{tr.brandSub}</p>
+            <p className="mt-0.5 hidden truncate text-[9px] uppercase leading-none tracking-widest text-gray-400 sm:block">
+              {tr.brandSub}
+            </p>
           </div>
 
           {/* Right: schedule + language (category nav moved to hero) */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2.5">
             <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400">
               <Calendar className="w-3.5 h-3.5 text-gold-400" />
               <span>{tr.scheduleFullRange}</span>
@@ -479,25 +485,28 @@ export default function App() {
               {lang === 'pt' ? 'Calendário' : lang === 'es' ? 'Calendario' : 'Schedule'}
             </button>
 
+            <button
+              type="button"
+              onClick={() => setAccountOpen(true)}
+              className="flex items-center gap-1 rounded-lg border border-gray-700/80 bg-pitch-700/60 p-2 text-xs font-medium text-gray-300 transition hover:border-grass-600/50 hover:text-white sm:px-2.5"
+              title={tr.accountTitle}
+            >
+              <List className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">{tr.accountTitle}</span>
+            </button>
+
             {authConfigured ? (
               user ? (
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-0.5 sm:gap-1.5">
                   {!user.emailVerified ? (
                     <button
                       type="button"
                       onClick={() => openAuthModal('sign_in', 'header')}
-                      className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/20"
+                      className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-200 hover:bg-amber-500/20 sm:px-2.5 sm:py-1.5 sm:text-[11px]"
                     >
-                      {tr.authVerifyEmail}
+                      <span className="max-w-[4.5rem] truncate sm:max-w-none">{tr.authVerifyEmail}</span>
                     </button>
-                  ) : (
-                    <span
-                      className="hidden max-w-[100px] truncate text-[11px] text-gray-500 lg:inline"
-                      title={user.email}
-                    >
-                      {user.email}
-                    </span>
-                  )}
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => {
@@ -505,7 +514,7 @@ export default function App() {
                       clearVerifiedSellerSession();
                       track(AnalyticsEvent.AuthSignOut);
                     }}
-                    className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-400 transition hover:bg-white/5 hover:text-white"
+                    className="flex items-center gap-1 rounded-lg p-2 text-xs font-medium text-gray-400 transition hover:bg-white/5 hover:text-white sm:px-2.5"
                     title={tr.authSignOut}
                   >
                     <LogOut className="h-3.5 w-3.5" />
@@ -516,7 +525,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => openAuthModal('sign_in', 'header')}
-                  className="flex items-center gap-1 rounded-lg border border-gray-700/80 bg-pitch-700/60 px-2.5 py-1.5 text-xs font-medium text-gray-300 transition hover:border-grass-600/50 hover:text-white"
+                  className="flex items-center gap-1 rounded-lg border border-gray-700/80 bg-pitch-700/60 p-2 text-xs font-medium text-gray-300 transition hover:border-grass-600/50 hover:text-white sm:px-2.5"
                 >
                   <LogIn className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">{tr.authSignIn}</span>
@@ -1090,7 +1099,7 @@ export default function App() {
       </div>
 
       {/* ── LISTINGS ──────────────────────────────────────────────────── */}
-      <section ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-3">
+      <section ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-1 sm:pt-3">
         {(activeMatchNumber != null || activeCity || activeNation) && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-semibold text-grass-400">
@@ -1114,8 +1123,8 @@ export default function App() {
         )}
 
         {/* Tabs */}
-        <div className="sticky top-[56px] z-40 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-pitch-900/95 backdrop-blur-xl border-b border-gray-800/60 mb-6">
-          <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-5 bg-pitch-800 rounded-xl p-1 w-full border border-gray-700/50">
+        <div className="sticky top-[46px] z-40 -mx-4 mb-4 border-b border-gray-800/60 bg-pitch-900/95 px-4 py-1.5 backdrop-blur-xl sm:-mx-6 sm:top-[52px] sm:mb-6 sm:px-6 sm:py-2">
+          <div className="flex gap-1 overflow-x-auto rounded-xl border border-gray-700/50 bg-pitch-800 p-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-5 [&::-webkit-scrollbar]:hidden">
             {([
               {
                 key: 'tickets' as ListingTab,
@@ -1144,7 +1153,7 @@ export default function App() {
                   track(AnalyticsEvent.ListingsTab, { tab: tab.key });
                   navigateToTab(tab.key);
                 }}
-                className={`flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-0 ${
+                className={`flex min-w-[5.5rem] shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-200 sm:min-w-0 sm:shrink sm:px-3 sm:py-2.5 sm:text-sm ${
                   activeTab === tab.key ? tab.activeCls : 'text-gray-400 hover:text-gray-200'
                 }`}
               >
@@ -1166,7 +1175,7 @@ export default function App() {
 
         {activeTab === 'tickets' && (
           <div className="mb-10">
-            <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="mb-3 hidden items-center justify-between gap-3 sm:mb-5 sm:flex">
               <h4 className="flex items-center gap-2 text-sm font-semibold text-gold-200">
                 <Tag className="h-4 w-4 shrink-0" />
                 {tr.tabTicketSell}
@@ -1191,7 +1200,7 @@ export default function App() {
         )}
         {activeTab === 'wanted' && (
           <div className="mb-10">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-3 hidden flex-wrap items-center justify-between gap-3 sm:mb-5 sm:flex">
               <h4 className="flex items-center gap-2 text-sm font-semibold text-sky-200">
                 <Search className="h-4 w-4 shrink-0" />
                 {tr.tabTicketBuy}
@@ -1383,6 +1392,14 @@ export default function App() {
       </footer>
 
       <AuthModal tr={tr} />
+      {accountOpen ? (
+        <MyAccountModal
+          tr={tr}
+          wallPosts={userPosts}
+          onClose={() => setAccountOpen(false)}
+          onDelisted={() => refreshWall()}
+        />
+      ) : null}
     </div>
   );
 }

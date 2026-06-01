@@ -8,6 +8,11 @@ export function ticketWallPostIsJunk(post: TicketWallPost): boolean {
   return text.includes('archived duplicate');
 }
 
+export function ticketWallPostIsArchived(post: TicketWallPost): boolean {
+  const p = post.payload as { listingStatus?: string } | undefined;
+  return p?.listingStatus === 'archived';
+}
+
 /** Real fan buy request (Wanted tab): must have target match + WhatsApp. */
 export function ticketWallPostIsValidBuy(post: TicketWallPost): boolean {
   if (post.kind !== 'buy' || ticketWallPostIsJunk(post)) return false;
@@ -18,7 +23,7 @@ export function ticketWallPostIsValidBuy(post: TicketWallPost): boolean {
 }
 
 export function filterVisibleTicketWallPosts(posts: TicketWallPost[]): TicketWallPost[] {
-  return posts.filter(p => !ticketWallPostIsJunk(p));
+  return posts.filter(p => !ticketWallPostIsJunk(p) && !ticketWallPostIsArchived(p));
 }
 
 export function filterVisibleBuyPosts(posts: TicketWallPost[]): TicketWallPost[] {
