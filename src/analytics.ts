@@ -1,4 +1,5 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getSupabase } from './supabaseClient';
 
 const TABLE = 'site_analytics_events';
 const VISITOR_KEY = 'okcopa_vid';
@@ -9,7 +10,6 @@ const ATTR_FT_KEY = 'okcopa_attr_ft';
 const ATTR_LT_KEY = 'okcopa_attr_lt';
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
-let client: SupabaseClient | null | undefined;
 let attributionBooted = false;
 
 export interface StoredAttribution {
@@ -36,15 +36,7 @@ export function setAnalyticsLang(lang: string): void {
 }
 
 function getClient(): SupabaseClient | null {
-  if (client !== undefined) return client;
-  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-  if (!url || !anonKey) {
-    client = null;
-    return client;
-  }
-  client = createClient(url, anonKey);
-  return client;
+  return getSupabase();
 }
 
 function newId(): string {
@@ -301,6 +293,10 @@ export const AnalyticsEvent = {
   TicketPostSubmit: 'ticket_post_submit',
   VerifiedSellerRegister: 'verified_seller_register',
   VerifiedSellerPost: 'verified_seller_post',
+  AuthSignIn: 'auth_sign_in',
+  AuthSignUp: 'auth_sign_up',
+  AuthSignOut: 'auth_sign_out',
+  AuthVerifyResend: 'auth_verify_resend',
   CarCall: 'car_call_click',
   HotelCall: 'hotel_call_click',
   HeaderSchedule: 'header_schedule_click',

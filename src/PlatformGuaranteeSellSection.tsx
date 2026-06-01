@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Loader2, ShieldCheck, Upload } from 'lucide-react';
+import { Loader2, Mail, ShieldCheck, Upload } from 'lucide-react';
+import { useAuth, type AuthUser } from './auth';
 import { AnalyticsEvent, track } from './analytics';
 import type { Translations } from './i18n';
 import { whatsappDigits } from './ticketPostForm';
 import {
+  fetchVerifiedSellerForUser,
   loadVerifiedSellerSession,
   registerVerifiedSeller,
   uploadListingProofFiles,
@@ -16,6 +18,7 @@ const fieldCls =
 
 export function validatePlatformGuaranteeSubmit(opts: {
   enabled: boolean;
+  authUser: AuthUser | null;
   session: VerifiedSellerProfile | null;
   whatsapp: string;
   listingProofs: File[];
@@ -23,6 +26,8 @@ export function validatePlatformGuaranteeSubmit(opts: {
   tr: Translations;
 }): string | null {
   if (!opts.enabled) return null;
+  if (!opts.authUser) return opts.tr.authSignInForVerified;
+  if (!opts.authUser.emailVerified) return opts.tr.authVerifyEmailForVerified;
   if (!opts.session) return opts.tr.verifiedMustRegister;
   if (!whatsappDigitsMatch(opts.session.whatsapp, opts.whatsapp)) return opts.tr.verifiedWhatsappMustMatch;
   if (opts.listingProofs.length === 0) return opts.tr.verifiedListingProofRequired;
@@ -57,22 +62,62 @@ export function PlatformGuaranteeSellSection({
   onAgreedChange: (v: boolean) => void;
   onError: (msg: string | null) => void;
 }) {
+  const { user, openAuthModal, resendVerificationEmail, authConfigured } = useAuth();
   const [regName, setRegName] = useState(sellerName);
   const [regProofs, setRegProofs] = useState<File[]>([]);
   const [regAgreed, setRegAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifyInfo, setVerifyInfo] = useState<string | null>(null);
 
   useEffect(() => {
-    const saved = loadVerifiedSellerSession();
-    if (saved && !session) onSessionChange(saved);
-  }, [onSessionChange, session]);
+    if (!user?.emailVerified) {
+      onSessionChange(null);
+      return;
+    }
+    const cached = loadVerifiedSellerSession();
+    if (cached?.userId === user.id) {
+      onSessionChange(cached);
+      return;
+    }
+    void fetchVerifiedSellerForUser(user.id).then(profile => {
+      if (profile) onSessionChange(profile);
+    });
+  }, [user?.id, user?.emailVerified, onSessionChange]);
 
   useEffect(() => {
     if (sellerName.trim()) setRegName(sellerName.trim());
   }, [sellerName]);
 
+  const tryEnableGuarantee = (next: boolean) => {
+    onError(null);
+    setVerifyInfo(null);
+    if (!next) {
+      onEnabledChange(false);
+      onAgreedChange(false);
+      return;
+    }
+    if (!authConfigured) {
+      onError(tr.authNotConfigured);
+      return;
+    }
+    if (!user) {
+      openAuthModal('sign_in', 'verified_listing');
+      return;
+    }
+    if (!user.emailVerified) {
+      openAuthModal('sign_in', 'verified_listing');
+      return;
+    }
+    onEnabledChange(true);
+  };
+
   const register = async () => {
     onError(null);
+    if (!user?.emailVerified) {
+      onError(tr.authVerifyEmailForVerified);
+      return;
+    }
     if (!regName.trim()) {
       onError(tr.verifiedRegisterNameRequired);
       return;
@@ -90,8 +135,7 @@ export function PlatformGuaranteeSellSection({
       return;
     }
     setBusy(true);
-    const tempId = `pending-${Date.now()}`;
-    const uploaded = await uploadListingProofFiles(regProofs, tempId);
+    const uploaded = await uploadListingProofFiles(regProofs, user.id);
     if (uploaded.length === 0) {
       setBusy(false);
       onError(tr.verifiedUploadFailed);
@@ -113,17 +157,26 @@ export function PlatformGuaranteeSellSection({
     track(AnalyticsEvent.VerifiedSellerRegister, { seller_id: profile.id });
   };
 
+  const resendVerify = async () => {
+    setVerifyBusy(true);
+    setVerifyInfo(null);
+    const err = await resendVerificationEmail();
+    setVerifyBusy(false);
+    if (err) {
+      onError(err);
+      return;
+    }
+    track(AnalyticsEvent.AuthVerifyResend);
+    setVerifyInfo(tr.authVerifyEmailSent);
+  };
+
   return (
     <div className="rounded-xl border border-grass-600/35 bg-grass-950/30 p-4">
       <label className="flex cursor-pointer items-start gap-3">
         <input
           type="checkbox"
           checked={enabled}
-          onChange={e => {
-            onEnabledChange(e.target.checked);
-            onError(null);
-            if (!e.target.checked) onAgreedChange(false);
-          }}
+          onChange={e => tryEnableGuarantee(e.target.checked)}
           className="mt-1 h-4 w-4 rounded border-gray-600 text-grass-500 focus:ring-grass-500/40"
         />
         <span>
@@ -139,7 +192,23 @@ export function PlatformGuaranteeSellSection({
 
       {enabled ? (
         <div className="mt-4 space-y-4 border-t border-grass-700/30 pt-4">
-          {!session ? (
+          {!user ? (
+            <p className="text-xs text-amber-300/90">{tr.authSignInForVerified}</p>
+          ) : !user.emailVerified ? (
+            <div className="space-y-2">
+              <p className="text-xs text-amber-300/90">{tr.authVerifyEmailHint}</p>
+              <button
+                type="button"
+                disabled={verifyBusy}
+                onClick={() => void resendVerify()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-grass-600/50 px-3 py-1.5 text-[11px] font-semibold text-grass-300 hover:bg-grass-950/50"
+              >
+                {verifyBusy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                {tr.authResendVerification}
+              </button>
+              {verifyInfo ? <p className="text-[11px] text-grass-400">{verifyInfo}</p> : null}
+            </div>
+          ) : !session ? (
             <>
               <p className="text-xs font-semibold text-grass-300">{tr.verifiedRegisterTitle}</p>
               <p className="text-[11px] leading-relaxed text-gray-500">{tr.verifiedRegisterIntro}</p>

@@ -14,6 +14,7 @@ import {
   createWallPostFromSell,
   createWallPostFromBuy,
 } from './ticketPostForm';
+import { useAuth } from './auth';
 import { loadVerifiedSellerSession, uploadListingProofFiles, type VerifiedSellerProfile } from './verifiedSeller';
 
 const fieldBase =
@@ -98,6 +99,7 @@ function SellForm({
   const [listingProofs, setListingProofs] = useState<File[]>([]);
   const [guaranteeAgreed, setGuaranteeAgreed] = useState(false);
   const [guaranteeError, setGuaranteeError] = useState<string | null>(null);
+  const { user } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
   const allMatches = useMemo(() => {
@@ -133,6 +135,7 @@ function SellForm({
     if (!ok || submitting) return;
     const gErr = validatePlatformGuaranteeSubmit({
       enabled: platformGuarantee,
+      authUser: user,
       session: verifiedSeller,
       whatsapp: whatsapp.trim(),
       listingProofs,

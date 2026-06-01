@@ -3,7 +3,8 @@ import { normalizeBudgetValue } from './ticketPostForm';
 import { primaryMatchFlagsForSellPost } from './sellMatchFlags';
 import { resolveTicketPostFlag } from './teamFlags';
 import { filterVisibleTicketWallPosts, ticketWallPostIsJunk } from './ticketWallFilters';
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { getSupabase } from './supabaseClient';
 
 export type TicketWallKind = 'buy' | 'sell';
 
@@ -34,22 +35,8 @@ export const TICKET_WALL_MAX_POSTS = 1000;
 
 let sharedPrefetch: Promise<TicketWallPost[] | null> | null = null;
 
-let supabaseClient: SupabaseClient | null | undefined;
-
 export function getTicketWallSupabase(): SupabaseClient | null {
-  return getSupabaseClient();
-}
-
-function getSupabaseClient(): SupabaseClient | null {
-  if (supabaseClient !== undefined) return supabaseClient;
-  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-  if (!url || !anonKey) {
-    supabaseClient = null;
-    return supabaseClient;
-  }
-  supabaseClient = createClient(url, anonKey);
-  return supabaseClient;
+  return getSupabase();
 }
 
 /** Demo/seed posts — empty until real listings are imported. */
@@ -65,7 +52,7 @@ export function sortTicketPostsNewestFirst(posts: TicketWallPost[]): TicketWallP
 }
 
 export function isTicketWallRemoteEnabled(): boolean {
-  return getSupabaseClient() != null;
+  return getSupabase() != null;
 }
 
 export function loadCachedSharedTicketPosts(): TicketWallPost[] {
@@ -184,7 +171,7 @@ function dbRowToPost(row: TicketWallDbRow, localIds: Set<string>): TicketWallPos
 }
 
 export async function fetchTicketPostById(id: string): Promise<TicketWallPost | null> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
@@ -202,7 +189,7 @@ export async function fetchTicketPostById(id: string): Promise<TicketWallPost | 
 }
 
 export async function loadSharedTicketPosts(localIds: Set<string>): Promise<TicketWallPost[] | null> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
@@ -230,7 +217,7 @@ export function prefetchSharedTicketPosts(): Promise<TicketWallPost[] | null> {
 }
 
 export async function persistSharedTicketPost(post: TicketWallPost): Promise<boolean> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabase();
   if (!supabase) return false;
   try {
     const { error } = await supabase.from(SUPABASE_TABLE).upsert({

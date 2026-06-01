@@ -1,4 +1,5 @@
 -- OKcopa verified sellers + ticket proof storage (run in Supabase SQL Editor)
+-- After this file, run docs/supabase-auth-accounts.sql and enable Email auth in Dashboard.
 
 create table if not exists public.okcopa_verified_sellers (
   id text primary key,

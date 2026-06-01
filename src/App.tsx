@@ -3,8 +3,11 @@ import {
   MapPin, ChevronLeft, ChevronRight, Bed, Car, Building2,
   Zap, Calendar, Phone, Clock,
   Flame, ChevronDown, Check, Ticket, X,
-  BarChart3, Tag, Plus, Globe, Search,
+  BarChart3, Tag, Plus, Globe, Search, LogIn, LogOut,
 } from 'lucide-react';
+import { useAuth } from './auth';
+import { AuthModal } from './AuthModal';
+import { clearVerifiedSellerSession } from './verifiedSeller';
 import {
   matches,
   scheduleDates,
@@ -237,6 +240,7 @@ export default function App() {
   const hostCitiesRef = useRef<HTMLDivElement>(null);
   const scheduleSectionRef = useRef<HTMLElement>(null);
   const tr = t[lang];
+  const { user, authConfigured, openAuthModal, signOut } = useAuth();
 
   const onShareRecentPost = async () => {
     if (!recentPost) return;
@@ -420,6 +424,51 @@ export default function App() {
               <Calendar className="w-3.5 h-3.5" />
               {lang === 'pt' ? 'Calendário' : lang === 'es' ? 'Calendario' : 'Schedule'}
             </button>
+
+            {authConfigured ? (
+              user ? (
+                <div className="flex items-center gap-1.5">
+                  {!user.emailVerified ? (
+                    <button
+                      type="button"
+                      onClick={() => openAuthModal('sign_in', 'header')}
+                      className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-amber-200 hover:bg-amber-500/20"
+                    >
+                      {tr.authVerifyEmail}
+                    </button>
+                  ) : (
+                    <span
+                      className="hidden max-w-[100px] truncate text-[11px] text-gray-500 lg:inline"
+                      title={user.email}
+                    >
+                      {user.email}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void signOut();
+                      clearVerifiedSellerSession();
+                      track(AnalyticsEvent.AuthSignOut);
+                    }}
+                    className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-gray-400 transition hover:bg-white/5 hover:text-white"
+                    title={tr.authSignOut}
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{tr.authSignOut}</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openAuthModal('sign_in', 'header')}
+                  className="flex items-center gap-1 rounded-lg border border-gray-700/80 bg-pitch-700/60 px-2.5 py-1.5 text-xs font-medium text-gray-300 transition hover:border-grass-600/50 hover:text-white"
+                >
+                  <LogIn className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{tr.authSignIn}</span>
+                </button>
+              )
+            ) : null}
 
             {/* Language switcher */}
             <div id="lang-menu" className="relative">
@@ -1274,6 +1323,8 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      <AuthModal tr={tr} />
     </div>
   );
 }

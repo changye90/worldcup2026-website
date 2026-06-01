@@ -38,6 +38,8 @@ Supabase 表 `ticket_wall_posts` 需已建表，且 RLS 允许 `anon` 的 `selec
 
 **访问与点击埋点**（PV/UV、WhatsApp、电话、头部/赛程按钮）写入表 `site_analytics_events`，使用同一套 `VITE_SUPABASE_*`。建表 SQL：[docs/supabase-analytics.sql](./supabase-analytics.sql)（只需执行一次）。
 
+**OKcopa Verified 账号（邮箱注册 + 验证）**：普通发帖仍为游客；勾选平台担保需登录且邮箱已验证。在 Supabase → Authentication → Providers 开启 **Email**，并打开 **Confirm email**。SQL Editor 依次执行 [docs/supabase-verified-sellers.sql](./supabase-verified-sellers.sql)、[docs/supabase-auth-accounts.sql](./supabase-auth-accounts.sql)。Site URL / Redirect URLs 加入 `https://okcopa.com/tickets`（及本地预览地址）。
+
 表单字段（含 `category`、`seatDetails`）存在 **`payload` jsonb** 里，加座位详情**不用改表结构**，部署新前端即可。
 
 批量导入 Excel 票务行见 [docs/import-ticket-wall-supabase.md](./import-ticket-wall-supabase.md)（`npm run import:tickets -- ./data/你的表.xlsx`）。
