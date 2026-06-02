@@ -178,7 +178,18 @@ export default function App() {
     setActiveMatchNumber(null);
     setActiveNation(null);
   };
-  const { handlePost, refreshWall, userPosts, sellPosts, buyPosts, highlightPostId, shareLinkLoading, wallLoading } =
+  const {
+    handlePost,
+    refreshWall,
+    userPosts,
+    sellPosts,
+    buyPosts,
+    highlightPostId,
+    shareLinkLoading,
+    wallLoading,
+    remoteWall,
+    wallSyncError,
+  } =
     useTicketWall(
     lang,
     {
@@ -453,6 +464,13 @@ export default function App() {
   };
 
   const currentLang = languages.find(l => l.code === lang)!;
+  const ticketWallSyncHint =
+    lang === 'es'
+      ? 'No se pudo sincronizar los tickets en la nube. Mostrando solo datos locales.'
+      : lang === 'pt'
+        ? 'Falha ao sincronizar tickets na nuvem. Mostrando apenas dados locais.'
+        : 'Cloud ticket sync failed. Showing local data only.';
+  const retryLabel = lang === 'es' ? 'Reintentar' : lang === 'pt' ? 'Tentar de novo' : 'Retry';
 
   return (
     <div className="min-h-screen bg-pitch-900 text-white font-sans">
@@ -1185,6 +1203,18 @@ export default function App() {
 
         {activeTab === 'tickets' && (
           <div className="mb-10">
+            {remoteWall && wallSyncError ? (
+              <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 sm:text-sm">
+                <span>{ticketWallSyncHint}</span>
+                <button
+                  type="button"
+                  onClick={refreshWall}
+                  className="rounded-lg border border-amber-400/40 px-2 py-1 font-semibold text-amber-100 transition hover:bg-amber-500/20"
+                >
+                  {retryLabel}
+                </button>
+              </div>
+            ) : null}
             <div className="mb-3 hidden items-center justify-between gap-3 sm:mb-5 sm:flex">
               <h4 className="flex items-center gap-2 text-sm font-semibold text-gold-200">
                 <Tag className="h-4 w-4 shrink-0" />
@@ -1210,6 +1240,18 @@ export default function App() {
         )}
         {activeTab === 'wanted' && (
           <div className="mb-10">
+            {remoteWall && wallSyncError ? (
+              <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100 sm:text-sm">
+                <span>{ticketWallSyncHint}</span>
+                <button
+                  type="button"
+                  onClick={refreshWall}
+                  className="rounded-lg border border-amber-400/40 px-2 py-1 font-semibold text-amber-100 transition hover:bg-amber-500/20"
+                >
+                  {retryLabel}
+                </button>
+              </div>
+            ) : null}
             <div className="mb-3 hidden flex-wrap items-center justify-between gap-3 sm:mb-5 sm:flex">
               <h4 className="flex items-center gap-2 text-sm font-semibold text-sky-200">
                 <Search className="h-4 w-4 shrink-0" />

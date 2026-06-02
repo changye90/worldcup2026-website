@@ -551,6 +551,7 @@ export function useTicketWall(
   const [shareLinkLoading, setShareLinkLoading] = useState(
     () => !options?.useDetailPage && !!getTicketIdFromUrl() && !onDetailPath,
   );
+  const [wallSyncError, setWallSyncError] = useState(false);
   const shareResolvedRef = useRef(false);
   const shareFetchStartedRef = useRef<string | null>(null);
 
@@ -561,7 +562,11 @@ export function useTicketWall(
     void prefetchSharedTicketPosts().then(shared => {
       if (!active) return;
       setWallLoading(false);
-      if (!shared) return;
+      if (!shared) {
+        setWallSyncError(true);
+        return;
+      }
+      setWallSyncError(false);
       persistCachedSharedTicketPosts(shared);
       setUserPosts(mergeTicketWallPosts(localPosts, shared));
     });
@@ -693,6 +698,7 @@ export function useTicketWall(
   const refreshWall = useCallback(() => {
     const localPosts = loadUserTicketPosts();
     void loadSharedTicketPosts(new Set(localPosts.map(p => p.id))).then(shared => {
+      setWallSyncError(shared == null);
       setUserPosts(mergeTicketWallPosts(localPosts, shared ?? []));
     });
   }, []);
@@ -706,6 +712,8 @@ export function useTicketWall(
     highlightPostId,
     shareLinkLoading,
     wallLoading,
+    remoteWall,
+    wallSyncError,
   };
 }
 

@@ -46,9 +46,17 @@ export function buildXShareUrl(post: TicketWallPost, tr: Translations): string {
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pageUrl)}`;
 }
 
-export function buildFacebookShareUrl(post: TicketWallPost): string {
+function ticketFacebookQuote(post: TicketWallPost, tr: Translations): string {
+  if (post.kind === 'sell') {
+    return `I posted this World Cup ticket on OKcopa: ${post.summary}. Open the listing and contact me on WhatsApp.`;
+  }
+  return `I'm looking for this World Cup ticket on OKcopa: ${post.summary}. Open the listing and contact me on WhatsApp.`;
+}
+
+export function buildFacebookShareUrl(post: TicketWallPost, tr: Translations): string {
   const page = buildTicketShareUrl(post);
-  return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(page)}`;
+  const quote = ticketFacebookQuote(post, tr);
+  return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(page)}&quote=${encodeURIComponent(quote)}`;
 }
 
 export function clearTicketShareFromUrl(): void {

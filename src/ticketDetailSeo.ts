@@ -75,6 +75,12 @@ export function ticketPageSeoMeta(
       ? tr.ticketDetailMetaDescSell(match, extras.filter(Boolean).join(' · '))
       : tr.ticketDetailMetaDescBuy(match, extras.filter(Boolean).join(' · '));
 
+  if (post.kind === 'sell') {
+    description = `${description} Posted on OKcopa — open this listing and contact seller on WhatsApp.`;
+  } else {
+    description = `${description} Posted on OKcopa — open this listing and contact buyer on WhatsApp.`;
+  }
+
   if (post.kind === 'sell' && postHasPlatformGuarantee(post)) {
     description = `${description} ${tr.verifiedSellerBadge} — ${tr.verifiedPlatformGuaranteeTitle}.`;
   }

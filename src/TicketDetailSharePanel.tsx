@@ -112,7 +112,7 @@ export function TicketDetailSharePanel({ post, tr }: { post: TicketWallPost; tr:
             </button>
             <button
               type="button"
-              onClick={() => openExternal('facebook', buildFacebookShareUrl(post))}
+              onClick={() => openExternal('facebook', buildFacebookShareUrl(post, tr))}
               className="rounded-lg border border-gray-700 px-2.5 py-1.5 text-[11px] font-semibold text-gray-300 hover:border-blue-500/50"
             >
               FB
