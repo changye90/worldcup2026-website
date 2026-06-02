@@ -2,6 +2,12 @@ export type TicketDetailEntrySource = 'share_link' | 'internal' | 'referral' | '
 
 const ENTRY_FLAG_KEY = 'okcopa-ticket-entry';
 
+/** Reset window scroll when switching from long list pages to ticket detail. */
+export function resetPageScrollTop(): void {
+  if (typeof window === 'undefined') return;
+  window.scrollTo(0, 0);
+}
+
 /** Mark next detail view as in-app navigation (wall → detail). */
 export function markTicketDetailInternalEntry(): void {
   try {

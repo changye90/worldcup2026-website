@@ -5,7 +5,7 @@ import { applyPageSeo, applyTicketPostPageSeo } from './seoDocument';
 import { trackPageView } from './analytics';
 import { buildAppUrl, readUrlAppState, type ListingTab } from './seoRouting';
 import { buildTicketPostPath, migrateLegacyTicketQuery } from './ticketRouting';
-import { markTicketDetailInternalEntry } from './ticketDetailEntry';
+import { markTicketDetailInternalEntry, resetPageScrollTop } from './ticketDetailEntry';
 import type { TicketWallPost } from './ticketPosts';
 
 const LEGACY_TABS = new Set(['tickets', 'wanted', 'cars', 'hotels', 'odds']);
@@ -130,6 +130,7 @@ export function useAppRouting(
   const navigateToTicketPost = useCallback(
     (id: string) => {
       markTicketDetailInternalEntry();
+      resetPageScrollTop();
       window.history.pushState(null, '', buildTicketPostPath(id));
       setTicketPostId(id);
       setActiveTab('tickets');

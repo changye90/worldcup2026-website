@@ -21,7 +21,11 @@ import {
 } from './ticketDetailSeo';
 import { postHasPlatformGuarantee } from './platformGuarantee';
 import { PlatformGuaranteeBanner, VerifiedSellerBadge } from './VerifiedSellerBadge';
-import { readTicketDetailEntrySource, stripTicketShareRefParam } from './ticketDetailEntry';
+import {
+  readTicketDetailEntrySource,
+  resetPageScrollTop,
+  stripTicketShareRefParam,
+} from './ticketDetailEntry';
 import { TicketDetailSharePanel } from './TicketDetailSharePanel';
 import { fetchTicketPostById, type TicketWallPost } from './ticketPosts';
 
@@ -206,6 +210,10 @@ export function TicketPostDetailPage({
   );
   const [loading, setLoading] = useState(!post);
   const [entrySource] = useState(() => readTicketDetailEntrySource());
+
+  useEffect(() => {
+    resetPageScrollTop();
+  }, [postId]);
 
   useEffect(() => {
     const cached = wallPosts.find(p => p.id === postId);

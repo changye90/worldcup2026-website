@@ -43,6 +43,7 @@ import { readUrlAppState, type ListingTab } from './seoRouting';
 import { findMatchByNumber, filterBuyPosts, filterSellPosts } from './sellPostResolve';
 import { matchInvolvesNation, scheduleNationOptions } from './matchNationFilter';
 import { buildTicketShareUrl, shareTicketPost } from './ticketShare';
+import { resetPageScrollTop } from './ticketDetailEntry';
 import { buildTicketPostPath, parseTicketPostIdFromPath } from './ticketRouting';
 import { postHasPlatformGuarantee } from './platformGuarantee';
 import { HeroCountdown } from './HeroCountdown';
@@ -183,6 +184,7 @@ export default function App() {
     {
       useDetailPage: true,
       onOpenSharePost: post => {
+        resetPageScrollTop();
         setTicketPostId(post.id);
         window.history.pushState(null, '', buildTicketPostPath(post.id));
       },
