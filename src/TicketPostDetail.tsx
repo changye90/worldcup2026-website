@@ -196,6 +196,7 @@ export function TicketPostDetailPage({
   tr,
   lang,
   onBack,
+  onCreatePost,
   onOpenGuides,
 }: {
   postId: string;
@@ -203,6 +204,7 @@ export function TicketPostDetailPage({
   tr: Translations;
   lang: Lang;
   onBack: () => void;
+  onCreatePost?: () => void;
   onOpenGuides?: () => void;
 }) {
   const [post, setPost] = useState<TicketWallPost | null>(() =>
@@ -251,9 +253,21 @@ export function TicketPostDetailPage({
   const schedule = post && isSell ? primaryScheduleMatchForSellPost(post) : null;
   const heading = post ? ticketDetailMatchLabel(post, tr) : '';
   const subhead = post ? ticketDetailSubhead(post, lang, tr) : null;
+  const sellPayload = isSell ? (post?.payload as TicketSellPayload | undefined) : undefined;
+  const buyPayload = !isSell ? (post?.payload as TicketBuyPayload | undefined) : undefined;
+  const sellSeatsLine = sellPayload ? formatCategorySeatLine(sellPayload) : null;
   const waHref = post
     ? getWhatsappHref(post, tr.ticketWhatsappPrefill(whatsappPrefillContext(post)))
     : null;
+  const onWhatsappClick = () => {
+    if (!post) return;
+    track(AnalyticsEvent.TicketDetailWhatsapp, {
+      post_id: post.id,
+      kind: post.kind,
+      has_wa: true,
+      verified,
+    });
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -358,6 +372,48 @@ export function TicketPostDetailPage({
                     <Clock className="h-3 w-3 shrink-0" />
                     {timeAgo(post.createdAt, tr)}
                   </p>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:max-w-xl sm:grid-cols-3">
+                    {isSell ? (
+                      <div className="rounded-lg border border-gold-500/30 bg-gold-500/10 p-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-gold-200/90">{tr.formLabelPrice}</p>
+                        <p className="mt-1 text-base font-extrabold text-gold-200 sm:text-lg">
+                          {sellHasFixedPrice(post) ? sellFixedPriceDisplay(post) : tr.ticketPriceNegotiableTitle}
+                        </p>
+                      </div>
+                    ) : buyPayload?.budget?.trim() ? (
+                      <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-sky-200/90">{tr.formLabelBudget}</p>
+                        <p className="mt-1 text-base font-extrabold text-sky-200 sm:text-lg">
+                          {formatBudgetDisplay(buyPayload.budget, tr)}
+                        </p>
+                      </div>
+                    ) : null}
+                    {sellPayload?.quantity ? (
+                      <div className="rounded-lg border border-gray-700/70 bg-pitch-900/70 p-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-gray-500">{tr.formLabelQuantity}</p>
+                        <p className="mt-1 text-base font-bold text-white sm:text-lg">{sellPayload.quantity}</p>
+                      </div>
+                    ) : buyPayload?.quantity ? (
+                      <div className="rounded-lg border border-gray-700/70 bg-pitch-900/70 p-2.5">
+                        <p className="text-[10px] uppercase tracking-wide text-gray-500">{tr.formLabelQuantity}</p>
+                        <p className="mt-1 text-base font-bold text-white sm:text-lg">{buyPayload.quantity}</p>
+                      </div>
+                    ) : null}
+                    {sellSeatsLine ? (
+                      <div className="rounded-lg border border-gray-700/70 bg-pitch-900/70 p-2.5 sm:col-span-1">
+                        <p className="text-[10px] uppercase tracking-wide text-gray-500">{tr.ticketCardLabelSeats}</p>
+                        <p className="mt-1 text-sm font-semibold text-white sm:text-base">{sellSeatsLine}</p>
+                      </div>
+                    ) : schedule ? (
+                      <div className="rounded-lg border border-gray-700/70 bg-pitch-900/70 p-2.5 sm:col-span-1">
+                        <p className="text-[10px] uppercase tracking-wide text-gray-500">{tr.ticketCardLabelKickoff}</p>
+                        <p className="mt-1 text-sm font-semibold text-white sm:text-base">
+                          {formatMatchKickoffDisplay(schedule, lang)}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 {isSell ? (
@@ -388,14 +444,7 @@ export function TicketPostDetailPage({
                     href={waHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() =>
-                      track(AnalyticsEvent.TicketDetailWhatsapp, {
-                        post_id: post.id,
-                        kind: post.kind,
-                        has_wa: true,
-                        verified,
-                      })
-                    }
+                    onClick={onWhatsappClick}
                     className="animate-wa-pulse mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg shadow-[#25D366]/20 transition hover:brightness-110 active:scale-[0.99]"
                     style={{ backgroundColor: '#25D366' }}
                   >
@@ -409,6 +458,19 @@ export function TicketPostDetailPage({
             <div className="space-y-5 px-5 py-5 sm:px-6">
               {verified ? <PlatformGuaranteeBanner tr={tr} /> : null}
               {isSell ? <SellDetailBody post={post} tr={tr} lang={lang} /> : <BuyDetailBody post={post} tr={tr} />}
+              {waHref ? (
+                <a
+                  href={waHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={onWhatsappClick}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.99]"
+                  style={{ backgroundColor: '#25D366' }}
+                >
+                  <MessageCircle className="h-5 w-5 shrink-0" />
+                  {tr.ticketDetailWhatsappCta}
+                </a>
+              ) : null}
 
               <div className="flex flex-col gap-2.5">
                 {!verified ? (
@@ -431,6 +493,18 @@ export function TicketPostDetailPage({
             onBrowseWall={onBack}
             onOpenGuides={() => (onOpenGuides ? onOpenGuides() : onBack())}
           />
+          {onCreatePost ? (
+            <section className="mt-4 rounded-xl border border-gray-700/50 bg-pitch-800/70 p-4 sm:p-5">
+              <p className="text-sm text-gray-300">{tr.ticketDetailPostPrompt}</p>
+              <button
+                type="button"
+                onClick={onCreatePost}
+                className="mt-3 inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-pitch-900 transition hover:bg-gray-100 active:scale-[0.99]"
+              >
+                {tr.ticketDetailPostCta}
+              </button>
+            </section>
+          ) : null}
         </>
       )}
     </div>

@@ -181,6 +181,8 @@ export const t = {
     ticketDetailSeoLinkWall: 'Browse all World Cup 2026 ticket listings',
     ticketDetailSeoLinkGuides: 'Ticket buying guide & price trends',
     ticketDetailSeoSectionTitle: 'About this listing',
+    ticketDetailPostPrompt: 'Got tickets too? You can post yours on the wall in under a minute.',
+    ticketDetailPostCta: 'I want to post tickets',
     ticketDetailContactOnWall: 'Contact seller on the ticket wall',
     ticketDetailShareTitle: 'Share this listing',
     ticketDetailShareHint:
@@ -528,6 +530,8 @@ export const t = {
     ticketDetailSeoLinkWall: 'Ver todos los boletos del Mundial 2026',
     ticketDetailSeoLinkGuides: 'Guía de compra y tendencias de precio',
     ticketDetailSeoSectionTitle: 'Sobre este anuncio',
+    ticketDetailPostPrompt: '¿Tú también tienes boletos? Puedes publicar en menos de un minuto.',
+    ticketDetailPostCta: 'Quiero publicar boletos',
     ticketDetailContactOnWall: 'Contactar en el muro de boletos',
     ticketDetailShareTitle: 'Compartir este anuncio',
     ticketDetailShareHint:
@@ -876,6 +880,8 @@ export const t = {
     ticketDetailSeoLinkWall: 'Ver todos os ingressos da Copa 2026',
     ticketDetailSeoLinkGuides: 'Guia de compra e tendências de preço',
     ticketDetailSeoSectionTitle: 'Sobre este anúncio',
+    ticketDetailPostPrompt: 'Também quer anunciar ingressos? Você pode publicar em menos de um minuto.',
+    ticketDetailPostCta: 'Quero publicar ingressos',
     ticketDetailContactOnWall: 'Falar com o vendedor no mural',
     ticketDetailShareTitle: 'Compartilhar este anúncio',
     ticketDetailShareHint:

@@ -52,6 +52,11 @@ export function TicketDetailSharePanel({ post, tr }: { post: TicketWallPost; tr:
       action: 'external',
       channel,
     });
+    const opened = window.open(href, '_blank', 'noopener,noreferrer');
+    if (!opened) {
+      // Popup blocked: still navigate in current tab so share action does not fail.
+      window.location.href = href;
+    }
     if (copyText) {
       try {
         await navigator.clipboard.writeText(copyText);
@@ -59,7 +64,6 @@ export function TicketDetailSharePanel({ post, tr }: { post: TicketWallPost; tr:
         /* ignore clipboard failure */
       }
     }
-    window.open(href, '_blank', 'noopener,noreferrer');
   };
 
   return (

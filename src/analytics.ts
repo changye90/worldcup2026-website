@@ -36,7 +36,16 @@ export function setAnalyticsLang(lang: string): void {
 }
 
 function getClient(): SupabaseClient | null {
-  return getSupabase();
+  const client = getSupabase();
+  if (!client) return null;
+  // Local preview traffic should not pollute production analytics by default.
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname.toLowerCase();
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+    const allowLocal = (import.meta.env.VITE_ENABLE_LOCAL_ANALYTICS as string | undefined) === '1';
+    if (isLocal && !allowLocal) return null;
+  }
+  return client;
 }
 
 function newId(): string {

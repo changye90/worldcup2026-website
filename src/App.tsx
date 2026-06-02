@@ -614,6 +614,12 @@ export default function App() {
           tr={tr}
           lang={lang}
           onBack={navigateBackFromTicket}
+          onCreatePost={() => {
+            navigateBackFromTicket();
+            window.setTimeout(() => {
+              setPostModal('sell');
+            }, 80);
+          }}
           onOpenGuides={() => {
             navigateBackFromTicket();
             window.setTimeout(() => {
