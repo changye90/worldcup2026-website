@@ -284,15 +284,24 @@ export function trackPageView(props?: {
 /** @see docs/analytics-dictionary.md — keep string values stable for historical data */
 export const AnalyticsEvent = {
   PageView: 'page_view',
+  /** Ticket wall card only — not detail page */
   TicketWhatsapp: 'ticket_whatsapp_click',
   TicketShare: 'ticket_share_click',
+  TicketCardClick: 'ticket_card_click',
   TicketDeepLink: 'ticket_deep_link_view',
+  /** Detail page `/tickets/{id}` */
   TicketDetailView: 'ticket_detail_view',
+  TicketDetailWhatsapp: 'ticket_detail_whatsapp_click',
   TicketDetailShareOpen: 'ticket_detail_share_open',
   TicketDetailShareCopy: 'ticket_detail_share_copy',
+  TicketDetailShareClick: 'ticket_detail_share_click',
   TicketPostSubmit: 'ticket_post_submit',
   VerifiedSellerRegister: 'verified_seller_register',
   VerifiedSellerPost: 'verified_seller_post',
+  AccountManageOpen: 'account_manage_open',
+  AccountManageSearch: 'account_manage_search',
+  AccountListingDelist: 'account_listing_delist',
+  AuthModalOpen: 'auth_modal_open',
   AuthSignIn: 'auth_sign_in',
   AuthSignUp: 'auth_sign_up',
   AuthSignOut: 'auth_sign_out',

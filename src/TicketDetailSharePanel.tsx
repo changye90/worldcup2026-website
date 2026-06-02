@@ -28,10 +28,10 @@ export function TicketDetailSharePanel({ post, tr }: { post: TicketWallPost; tr:
   };
 
   const onShare = async () => {
-    track(AnalyticsEvent.TicketShare, {
+    track(AnalyticsEvent.TicketDetailShareClick, {
       post_id: post.id,
       kind: post.kind,
-      source: 'detail_page',
+      action: 'native_share',
     });
     const result = await shareTicketPost(post, tr);
     if (result === 'copied') {
@@ -41,10 +41,10 @@ export function TicketDetailSharePanel({ post, tr }: { post: TicketWallPost; tr:
   };
 
   const openExternal = (channel: 'whatsapp' | 'facebook' | 'x', href: string) => {
-    track(AnalyticsEvent.TicketShare, {
+    track(AnalyticsEvent.TicketDetailShareClick, {
       post_id: post.id,
       kind: post.kind,
-      source: 'detail_page',
+      action: 'external',
       channel,
     });
     window.open(href, '_blank', 'noopener,noreferrer');

@@ -218,6 +218,14 @@ export default function App() {
 
   const openTicketDetail = (id: string) => {
     const post = userPosts.find(p => p.id === id);
+    if (post) {
+      track(AnalyticsEvent.TicketCardClick, {
+        post_id: post.id,
+        kind: post.kind,
+        is_user: Boolean(post.isUser),
+        from: 'wall',
+      });
+    }
     setActiveTab(post?.kind === 'buy' ? 'wanted' : 'tickets');
     navigateToTicketPost(id);
   };

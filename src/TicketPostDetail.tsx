@@ -381,12 +381,10 @@ export function TicketPostDetailPage({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() =>
-                      track(AnalyticsEvent.TicketWhatsapp, {
+                      track(AnalyticsEvent.TicketDetailWhatsapp, {
                         post_id: post.id,
                         kind: post.kind,
-                        source: 'detail_page',
                         has_wa: true,
-                        placement: 'primary',
                         verified,
                       })
                     }

@@ -1,275 +1,244 @@
 # OKcopa 埋点数据字典 / Analytics Data Dictionary
 
-> 表名：`public.site_analytics_events`（Supabase）  
-> 写入：前端 `src/analytics.ts`，匿名 `insert` only  
-> **历史事件名未改**；新事件与 `props` 字段为增量。2026-05 起自动附带来源归因（UTM + 引荐渠道）。
+> 表：`public.site_analytics_events` · 写入：`src/analytics.ts`（匿名 insert）  
+> **已有 `event` 名不改**；新能力用新事件名。下文按业务模块分组。
 
 ---
 
-## 1. 表结构列 / Table columns
+## 1. 表字段 / Table columns
 
-| 列名 Column | 类型 Type | 中文说明 | English |
-|-------------|-----------|----------|---------|
-| `id` | uuid | 事件主键 | Event primary key |
-| `event` | text | 事件类型（见第 2 节） | Event name / type |
-| `visitor_id` | text | 访客 ID（`localStorage`，跨会话） | Visitor ID (persistent, for **UV**) |
-| `session_id` | text | 会话 ID（30 分钟无活动换新） | Session ID (30m idle timeout) |
-| `path` | text | 触发时浏览器路径+查询串 | Path + query at fire time |
-| `referrer` | text | 浏览器 `document.referrer`（可能为空） | HTTP Referer header |
-| `props` | jsonb | 事件自定义属性 + 自动合并的归因/筛选字段 | Custom + auto-enriched JSON |
-| `created_at_ms` | bigint | 客户端时间戳（毫秒） | Client timestamp (ms) |
-| `created_at` | timestamptz | 服务端写入时间 | Server insert time |
+| 列 | 说明 |
+|----|------|
+| `event` | 事件名（见 §3） |
+| `visitor_id` | UV 去重 ID（`localStorage` `okcopa_vid`） |
+| `session_id` | 会话 ID（30 分钟无活动换新） |
+| `path` | 触发时 URL path + query |
+| `referrer` | `document.referrer` |
+| `props` | 业务字段 + 自动归因（§2） |
+| `created_at_ms` | 客户端毫秒时间戳 |
 
 ---
 
-## 2. 每条事件自动附带的 `props` / Auto-enriched props
+## 2. 自动附带字段 / Auto-enriched props（所有事件）
 
-以下字段在**所有事件**中尽可能出现（有值才写入），便于统计来源与筛选状态：
+| 键 | 说明 |
+|----|------|
+| `lang` | `en` / `es` / `pt` |
+| `utm_source` … `utm_term`, `gclid`, `fbclid` | 末次 UTM |
+| `ft_utm_*`, `ft_ref_channel`, `ft_landing_path` 等 | 首次归因（`ft_` 前缀） |
+| `ref_channel`, `ref_host` | 末次引荐渠道（见下表） |
+| `filter_city`, `filter_match`, `filter_team` | 当前 URL 筛选 |
+| `ticket_id` | 路径 `/tickets/{id}` 或 `?ticket=` |
+| `share_ref` | URL 带 `?ref=share` 时为 true |
+| `tab_path` | 如 `/wanted` → `wanted` |
+| `guides` | 在 `/guides` 时为 true |
 
-| props 键 | 中文 | English | 说明 |
-|----------|------|---------|------|
-| `lang` | 界面语言 | UI language | `en` / `es` / `pt` |
-| `utm_source` | 本次访问来源（末次归因） | Last-touch UTM source | URL `utm_source` |
-| `utm_medium` | 媒介 | Last-touch medium | `utm_medium` |
-| `utm_campaign` | 活动 | Last-touch campaign | `utm_campaign` |
-| `utm_content` | 素材 | Last-touch content | `utm_content` |
-| `utm_term` | 关键词 | Last-touch term | `utm_term` |
-| `gclid` | Google Ads 点击 ID | Google click ID | |
-| `fbclid` | Facebook 点击 ID | Facebook click ID | |
-| `ref_channel` | 引荐渠道分类（末次） | Classified referrer channel | 见下表 |
-| `ref_host` | 引荐域名 | Referrer hostname | |
-| `landing_path` | 末次落地路径 | Last landing path | |
-| `ft_utm_source` | **首次** UTM 来源 | **First-touch** UTM source | 前缀 `ft_` = first touch |
-| `ft_utm_medium` | 首次媒介 | First-touch medium | |
-| `ft_utm_campaign` | 首次活动 | First-touch campaign | |
-| `ft_utm_content` | 首次素材 | First-touch content | |
-| `ft_utm_term` | 首次关键词 | First-touch term | |
-| `ft_gclid` | 首次 gclid | First-touch gclid | |
-| `ft_fbclid` | 首次 fbclid | First-touch fbclid | |
-| `ft_ref_channel` | 首次引荐渠道 | First-touch referrer channel | |
-| `ft_ref_host` | 首次引荐域名 | First-touch referrer host | |
-| `ft_landing_path` | 首次落地路径 | First-touch landing path | |
-| `filter_city` | 当前 URL 城市筛选 | Active URL city filter | `?city=` |
-| `filter_match` | 当前 URL 场次 | Active URL match # | `?match=` |
-| `filter_team` | 当前 URL 国家/球队 | Active URL team filter | `?team=` |
-| `ticket_id` | 当前票务 ID | Active ticket post id | 路径 `/tickets/{id}` 或 legacy `?ticket=` |
-| `share_ref` | 分享链接归因 | Share link attribution | URL `?ref=share`（复制前写入事件） |
-| `tab_path` | 当前路径 Tab | Path-derived tab hint | 如 `/wanted` → `wanted` |
-| `guides` | 是否在指南页 | On /guides path | boolean |
+### `ref_channel`
 
-### `ref_channel` 取值 / Referrer channel values
-
-| 值 | 中文 | English |
-|----|------|---------|
-| `direct` | 无 referrer | No referrer |
-| `internal` | 站内 okcopa | Same site |
-| `google` | Google 搜索/生态 | Google |
-| `facebook` | Facebook / fb | Facebook |
-| `whatsapp` | WhatsApp | WhatsApp |
-| `instagram` | Instagram | Instagram |
-| `twitter` | X / Twitter | X / Twitter |
-| `bing` | Bing | Bing |
-| `referral` | 其他外链 | Other external site |
-| `unknown` | 解析失败 | Parse error |
+`direct` · `internal` · `google` · `facebook` · `whatsapp` · `instagram` · `twitter` · `bing` · `referral` · `unknown`
 
 ---
 
-## 3. 事件清单 / Event catalog
+## 3. 事件目录 / Event catalog
 
-### 3.1 页面与导航 / Page & navigation
+### 3.1 页面与导航
 
-| `event` | 中文含义 | English | 主要 props（除自动字段外） |
-|---------|----------|---------|---------------------------|
-| `page_view` | 页面浏览（PV） | Page view | `tab`, `source`, `href`, `is_new_session` |
+| event | 含义 | 主要 props |
+|-------|------|------------|
+| `page_view` | 列表区 PV | `tab`, `source`, `href`, `is_new_session` |
+| `listings_tab_click` | 切换 Tickets/Wanted/Cars/Hotels/Odds | `tab` |
+| `header_schedule_click` | 顶栏赛程 | — |
+| `header_lang_open` | 打开语言菜单 | `lang` |
+| `header_lang_select` | 切换语言 | `lang`, `from` |
+| `hero_sell_click` | Hero 卖票 | — |
+| `hero_buy_click` | Hero 买票 | — |
+| `listing_expand_click` | 租车/酒店加载全部 | `tab`, `total` |
+| `car_call_click` | 租车电话 | `car_id`, `city`, `has_phone` |
+| `hotel_call_click` | 酒店电话 | `rental_id`, `city`, `has_phone` |
 
-`page_view.source`：
-
-| 值 | 中文 | English |
-|----|------|---------|
-| `load` | 首次进入或刷新后首 tab | Initial load |
-| `tab` | 切换 listings Tab | Tab switch |
-| `back` | 浏览器后退 | Browser back |
-
-`page_view.tab`：`tickets` \| `wanted` \| `cars` \| `hotels` \| `odds`
+`page_view.source`：`load` · `tab` · `back`  
+`page_view.tab`：`tickets` · `wanted` · `cars` · `hotels` · `odds`
 
 ---
 
-### 3.2 票务墙 / Ticket wall
+### 3.2 票务墙（列表卡片）
 
-| `event` | 中文含义 | English | 主要 props |
-|---------|----------|---------|------------|
-| `ticket_whatsapp_click` | 点击联系 WhatsApp | WhatsApp CTA click | 见下表 |
-| `ticket_share_click` | 点击分享帖子 | Share listing click | 见下表 |
-| `ticket_deep_link_view` | 打开分享深链帖子（legacy `?ticket=` 或墙内深链） | Shared / deep link opened | `post_id`, `kind` |
-| `ticket_detail_view` | 打开票务详情页 `/tickets/{id}` | Ticket detail page view | `post_id`, `kind`, `entry_source`, `verified` |
-| `ticket_detail_share_open` | 详情页展开分享面板 | Expand share panel on detail | `post_id`, `kind` |
-| `ticket_detail_share_copy` | 详情页复制分享链接 | Copy share URL on detail | `post_id`, `kind`, `source?` |
-| `ticket_post_submit` | 提交发帖（买/卖） | Post form submitted | `kind`, `post_id`, `is_user`, `platform_guarantee?` |
-| `verified_seller_register` | 完成 OKcopa Verified 卖家注册 | Verified seller registration | `seller_id` |
-| `verified_seller_post` | 以平台担保发帖 | Post with platform guarantee | `seller_id`, `proof_count` |
-| `hero_sell_click` | Hero「我要卖票」 | Hero sell CTA | — |
-| `hero_buy_click` | Hero「我要买票」 | Hero buy CTA | — |
-| `hero_tab_click` | **已废弃** Hero 分类 Tab | **Legacy** hero tab | （历史数据可能有） |
+| event | 含义 | 主要 props |
+|-------|------|------------|
+| `ticket_card_click` | 点击卡片进入详情 | `post_id`, `kind`, `is_user`, `from`（`wall`） |
+| `ticket_whatsapp_click` | **仅列表卡片**上点 WhatsApp | `post_id`, `kind`, `is_user`, `has_wa`, `source`=`wall`, `placement`=`card` |
+| `ticket_share_click` | **仅列表卡片**上点分享 | `post_id`, `kind`, `is_user`, `source`=`wall` |
+| `ticket_deep_link_view` | 打开分享深链（`?ticket=` 等） | `post_id`, `kind` |
+| `ticket_post_submit` | 提交发帖 | `kind`, `post_id`, `is_user`, `platform_guarantee` |
 
-#### `ticket_whatsapp_click` 扩展 props（2026-05+）
+---
 
-| props | 中文 | English | 取值 |
-|-------|------|---------|------|
-| `post_id` | 帖子 ID | Post id | string |
-| `kind` | 买/卖 | buy \| sell | |
-| `is_user` | 是否用户帖 | User-authored post | boolean（墙卡片） |
-| `has_wa` | 是否有 WhatsApp | Has WhatsApp link | boolean |
-| `source` | 点击位置 | Click surface | `wall` \| `detail_page` |
-| `placement` | 按钮样式 | Button placement | `card`（墙卡片）\| `primary`（详情主 CTA） |
-| `verified` | 是否 OKcopa Verified | Platform guarantee listing | boolean（详情主 CTA） |
+### 3.3 票务详情页 `/tickets/{id}`
 
-#### `ticket_share_click` 扩展 props（2026-05+）
-
-| props | 中文 | English | 取值 |
-|-------|------|---------|------|
-| `post_id` | 帖子 ID | Post id | string |
-| `kind` | 买/卖 | buy \| sell | |
-| `is_user` | 是否用户帖 | User-authored post | boolean |
-| `source` | 分享入口 | Share entry point | `wall` \| `detail_page` \| `post_success_modal` |
-| `channel` | 外部分享渠道 | External channel | `whatsapp` \| `facebook` \| `x`（仅详情面板） |
+| event | 含义 | 主要 props |
+|-------|------|------------|
+| `ticket_detail_view` | 进入详情页（每次加载帖子） | `post_id`, `kind`, `entry_source`, `verified` |
+| `ticket_detail_whatsapp_click` | **详情页联系卖家/买家**（主 CTA） | `post_id`, `kind`, `has_wa`, `verified` |
+| `ticket_detail_share_open` | 展开底部分享区 | `post_id`, `kind` |
+| `ticket_detail_share_copy` | 复制分享链接 | `post_id`, `kind`, `source?` |
+| `ticket_detail_share_click` | 详情内分享操作 | `post_id`, `kind`, `action`, `channel?` |
 
 #### `ticket_detail_view.entry_source`
 
-| 值 | 中文 | English |
-|----|------|---------|
-| `share_link` | 打开带 `?ref=share` 的分享链接 | Opened shared URL with `?ref=share` |
-| `internal` | 站内列表/卡片进入 | In-app wall → detail |
-| `referral` | 外链 referrer 进入 | External referrer |
-| `direct` | 直接访问 / 无 referrer | Direct or no referrer |
-
-分享链接格式：`https://okcopa.com/tickets/{id}?ref=share`（归因后前端会 `replaceState` 去掉 `ref`，事件已记录 `entry_source` + `share_ref`）。
+| 值 | 含义 |
+|----|------|
+| `share_link` | URL 带 `?ref=share` |
+| `internal` | 站内卡片/列表进入 |
+| `referral` | 外链 referrer |
+| `direct` | 直接打开详情 URL |
 
 #### `ticket_detail_share_copy.source`
 
-| 值 | 中文 |
+| 值 | 含义 |
 |----|------|
-| （缺省） | 详情页分享面板「复制链接」 |
-| `post_success_modal` | 发帖成功弹窗「复制链接」 |
+| （缺省） | 详情分享面板 |
+| `post_success_modal` | 发帖成功弹窗复制链接 |
+
+#### `ticket_detail_share_click`
+
+| props | 取值 |
+|-------|------|
+| `action` | `native_share`（系统分享）· `external`（跳转渠道） |
+| `channel` | `whatsapp` · `facebook` · `x`（仅 `action=external`） |
+
+> **注意**：详情页 WhatsApp 联系只用 `ticket_detail_whatsapp_click`，不再写入 `ticket_whatsapp_click`。
 
 ---
 
-### 3.3 筛选器 / Filters（2026-05+）
+### 3.4 发帖与 OKcopa Verified
 
-| `event` | 中文含义 | English | 主要 props |
-|---------|----------|---------|------------|
-| `filter_schedule_open` | 展开赛程筛选面板 | Open schedule filter | — |
-| `filter_cities_open` | 展开主办城市面板 | Open cities filter | — |
-| `filter_nation_open` | 展开国家/球队面板 | Open nation filter | — |
-| `schedule_date_click` | 点击赛程日期 | Schedule day pill | `date`, `match_count` |
-| `schedule_match_click` | 点击某场比赛筛选票务 | Match filter click | `match_id`, `match_number`, `city`, `date`, `action` |
-| `filter_city_click` | 点击主办城市 | Host city filter | `city`, `action`, `high_demand` |
-| `filter_nation_click` | 选择/取消国家球队 | Nation filter | `nation`, `action`, `match_count` |
-| `filter_clear_click` | 清除全部列表筛选 | Clear all filters | `had_city`, `had_match`, `had_team` |
-
-`action`：`select` \| `clear`
+| event | 含义 | 主要 props |
+|-------|------|------------|
+| `verified_seller_register` | 完成认证卖家注册 | `seller_id` |
+| `verified_seller_post` | 带平台担保发帖 | `seller_id`, `proof_count` |
 
 ---
 
-### 3.4 列表 Tab 与其它 / Listings & misc
+### 3.5 账号与「我的帖子」
 
-| `event` | 中文含义 | English | 主要 props |
-|---------|----------|---------|------------|
-| `listings_tab_click` | 切换 Tickets/Cars/Hotels/Odds | Listings tab | `tab` |
-| `listing_expand_click` | 租车/酒店「加载全部」 | Load full grid | `tab`, `total` |
-| `header_schedule_click` | 顶栏跳转赛程 | Header schedule | — |
-| `header_lang_open` | 打开语言菜单 | Language menu open | `lang` |
-| `header_lang_select` | 切换语言 | Language change | `lang`, `from` |
-| `car_call_click` | 租车电话联系 | Car phone CTA | `car_id`, `city`, `has_phone` |
-| `hotel_call_click` | 酒店电话联系 | Hotel phone CTA | `rental_id`, `city`, `has_phone` |
+| event | 含义 | 主要 props |
+|-------|------|------------|
+| `auth_modal_open` | 打开登录/注册弹窗 | `mode`（`sign_in`/`sign_up`）, `reason`（`header`/`verified_listing`） |
+| `auth_sign_in` | 登录成功 | `reason` |
+| `auth_sign_up` | 注册提交成功 | `reason` |
+| `auth_sign_out` | 退出 | — |
+| `auth_verify_resend` | 重发验证邮件 | — |
+| `account_manage_open` | 打开「我的帖子」管理 | `is_logged_in` |
+| `account_manage_search` | 按 WhatsApp 查询帖子 | `is_logged_in`, `result_count` |
+| `account_listing_delist` | 下架一条帖子 | `post_id`, `kind`, `is_logged_in` |
 
 ---
 
-## 4. 常用 SQL 示例 / Example queries
+### 3.6 筛选器
+
+| event | 含义 | 主要 props |
+|-------|------|------------|
+| `filter_schedule_open` | 展开赛程 | — |
+| `filter_cities_open` | 展开城市 | — |
+| `filter_nation_open` | 展开国家/球队 | — |
+| `schedule_date_click` | 点赛程日期 | `date`, `match_count` |
+| `schedule_match_click` | 点某场比赛 | `match_id`, `match_number`, `city`, `date`, `action` |
+| `filter_city_click` | 点主办城市 | `city`, `action`, `high_demand` |
+| `filter_nation_click` | 点国家/球队 | `nation`, `action`, `match_count` |
+| `filter_clear_click` | 清除筛选 | `had_city`, `had_match`, `had_team` |
+
+`action`：`select` · `clear`
+
+---
+
+### 3.7 已废弃 / Legacy
+
+| event | 说明 |
+|-------|------|
+| `hero_tab_click` | Hero Tab 已移除，历史数据可查 |
+
+---
+
+## 4. 转化漏斗参考 / Funnels
+
+```
+page_view (tab=tickets)
+  → ticket_card_click
+  → ticket_detail_view
+  → ticket_detail_whatsapp_click   ← 详情联系（单独统计）
+
+ticket_whatsapp_click (source=wall) ← 列表直接联系（不经过详情）
+```
+
+分享：
+
+```
+ticket_detail_view
+  → ticket_detail_share_open
+  → ticket_detail_share_copy | ticket_detail_share_click
+```
+
+账号/认证帖：
+
+```
+auth_modal_open (reason=verified_listing)
+  → auth_sign_up | auth_sign_in
+  → verified_seller_register
+  → verified_seller_post
+```
+
+---
+
+## 5. 常用 SQL
 
 ```sql
--- 今日 PV
-select count(*) from site_analytics_events
-where event = 'page_view'
-  and created_at_ms > extract(epoch from (now() - interval '1 day')) * 1000;
-
--- 今日 UV（按 visitor_id）
+-- 今日 UV / PV
 select count(distinct visitor_id) from site_analytics_events
-where event = 'page_view'
-  and created_at_ms > extract(epoch from (now() - interval '1 day')) * 1000;
+where event = 'page_view' and created_at_ms > extract(epoch from (now() - interval '1 day')) * 1000;
 
--- 来源：末次 UTM（page_view）
-select props->>'utm_source' as source, props->>'utm_medium' as medium, count(*) as pv
-from site_analytics_events
-where event = 'page_view' and created_at_ms > ...
-group by 1, 2 order by pv desc;
-
--- 来源：首次归因（任意事件）
-select props->>'ft_ref_channel' as ft_channel, count(distinct visitor_id) as uv
-from site_analytics_events
-where created_at_ms > ...
-group by 1 order by uv desc;
-
--- 票务 WhatsApp 转化
-select count(*) from site_analytics_events
-where event = 'ticket_whatsapp_click' and created_at_ms > ...;
-
--- 详情页 PV 与分享链接来源
+-- 详情页浏览与来源
 select props->>'entry_source' as entry, count(*) as views
 from site_analytics_events
 where event = 'ticket_detail_view' and created_at_ms > ...
 group by 1 order by views desc;
 
--- OKcopa Verified 注册与担保发帖
+-- 详情联系 vs 列表联系（勿混用）
 select event, count(*) from site_analytics_events
-where event in ('verified_seller_register', 'verified_seller_post')
+where event in ('ticket_detail_whatsapp_click', 'ticket_whatsapp_click')
   and created_at_ms > ...
 group by 1;
 
--- Wanted Tab 浏览（page_view）
-select count(*) from site_analytics_events
-where event = 'page_view' and props->>'tab' = 'wanted' and created_at_ms > ...;
-
--- 国家筛选使用率
-select props->>'nation' as nation, count(*) as clicks
-from site_analytics_events
-where event = 'filter_nation_click' and props->>'action' = 'select'
-group by 1 order by clicks desc;
-```
-
----
-
-## 5. 给分析 AI 的扁平导出建议 / Flat export for analysts
-
-导出 CSV 时可拆成列：
-
-1. 表字段：`id, event, visitor_id, session_id, path, referrer, created_at_ms, created_at`
-2. 从 `props` 展开常用键：`lang, tab, source, utm_source, utm_medium, utm_campaign, ft_utm_source, ft_ref_channel, ref_channel, filter_city, filter_match, filter_team, ticket_id, share_ref, post_id, entry_source, verified, platform_guarantee, channel, placement, city, nation, action`
-
-PostgreSQL 示例：
-
-```sql
+-- 详情分享漏斗
 select
-  id, event, visitor_id, session_id, path, referrer, created_at_ms,
-  props->>'lang' as lang,
-  props->>'tab' as tab,
-  props->>'utm_source' as utm_source,
-  props->>'ft_utm_source' as ft_utm_source,
-  props->>'ref_channel' as ref_channel,
-  props->>'ft_ref_channel' as ft_ref_channel,
-  props
+  count(*) filter (where event = 'ticket_detail_view') as detail_views,
+  count(*) filter (where event = 'ticket_detail_whatsapp_click') as detail_wa,
+  count(*) filter (where event = 'ticket_detail_share_copy') as share_copy
 from site_analytics_events
-order by created_at_ms desc
-limit 10000;
+where created_at_ms > ...;
+
+-- 我的帖子：查询与下架
+select event, count(*) from site_analytics_events
+where event in ('account_manage_open', 'account_manage_search', 'account_listing_delist')
+  and created_at_ms > ...
+group by 1;
+
+-- 认证与担保发帖
+select event, count(*) from site_analytics_events
+where event in ('verified_seller_register', 'verified_seller_post', 'auth_sign_up')
+  and created_at_ms > ...
+group by 1;
 ```
 
 ---
 
-## 6. 兼容性说明 / Compatibility
+## 6. 扁平导出建议列
 
-- **不要修改**已有 `event` 字符串；新行为用新事件名或新 `props` 键。
-- `hero_tab_click` 仍保留在代码常量中，Hero 已移除该 UI，但历史行可继续查询。
-- 归因字段为 2026-05 增量；**旧行**无 `utm_*` / `ft_*` 为正常现象。
-- 票务详情页 SEO  canonical 为 `/tickets/{id}`（不含 `?ref=share`）；分享归因靠 `ticket_detail_view.entry_source` 与 `share_ref`。
-- `/wanted` 为买票需求独立 Tab，对应 `page_view.tab = wanted` 与路径 `/wanted`。
-- 推广链接请带 UTM，例如：`https://okcopa.com/tickets?utm_source=facebook&utm_medium=group&utm_campaign=wc26`
-- 单帖分享链接：`https://okcopa.com/tickets/{post_id}?ref=share`
+`id, event, visitor_id, session_id, path, referrer, created_at_ms, lang, tab, utm_source, ft_ref_channel, ref_channel, ticket_id, post_id, kind, entry_source, verified, source, placement, channel, action, is_logged_in, result_count, platform_guarantee, reason, mode`
+
+---
+
+## 7. 兼容性
+
+- 2026-05 前无 `utm_*` / 详情事件为正常现象。
+- 旧数据中 `ticket_whatsapp_click` 且 `source=detail_page` 为历史实现；新数据详情联系请查 `ticket_detail_whatsapp_click`。
+- 分享链接：`https://okcopa.com/tickets/{id}?ref=share`（`entry_source=share_link`）。

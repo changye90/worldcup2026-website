@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { AUTH_RETURN_SELL_GUARANTEE, saveAuthReturnIntent } from './authReturn';
+import { AnalyticsEvent, track } from './analytics';
 import { getSupabase } from './supabaseClient';
 
 export interface AuthUser {
@@ -160,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthModalMode(mode);
       setAuthModalReason(reason);
       setAuthModalOpen(true);
+      track(AnalyticsEvent.AuthModalOpen, { mode, reason });
     },
     [],
   );

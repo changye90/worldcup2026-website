@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Search, Trash2, User, X } from 'lucide-react';
+import { AnalyticsEvent, track } from './analytics';
 import { useAuth } from './auth';
 import type { Translations } from './i18n';
 import {
@@ -36,6 +37,7 @@ export function MyAccountModal({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    track(AnalyticsEvent.AccountManageOpen, { is_logged_in: Boolean(user) });
     if (user) setSearched(true);
   }, [user]);
 
@@ -62,6 +64,15 @@ export function MyAccountModal({
     }
     saveManageWhatsapp(whatsapp);
     setSearched(true);
+    const results = listingsForManage({
+      wallPosts,
+      userId: user?.id ?? null,
+      whatsapp: whatsapp.trim(),
+    });
+    track(AnalyticsEvent.AccountManageSearch, {
+      is_logged_in: Boolean(user),
+      result_count: results.length,
+    });
   };
 
   const delist = async (post: TicketWallPost) => {
@@ -74,6 +85,11 @@ export function MyAccountModal({
       setError(tr.accountDelistFailed);
       return;
     }
+    track(AnalyticsEvent.AccountListingDelist, {
+      post_id: post.id,
+      kind: post.kind,
+      is_logged_in: Boolean(user),
+    });
     onDelisted();
   };
 
