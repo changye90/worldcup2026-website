@@ -46,7 +46,7 @@ export function buildXShareUrl(post: TicketWallPost, tr: Translations): string {
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pageUrl)}`;
 }
 
-function ticketFacebookQuote(post: TicketWallPost, tr: Translations): string {
+export function ticketFacebookQuote(post: TicketWallPost, tr: Translations): string {
   if (post.kind === 'sell') {
     return `I posted this World Cup ticket on OKcopa: ${post.summary}. Open the listing and contact me on WhatsApp.`;
   }

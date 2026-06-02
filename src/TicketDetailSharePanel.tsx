@@ -5,6 +5,7 @@ import type { Translations } from './i18n';
 import type { TicketWallPost } from './ticketPosts';
 import {
   buildFacebookShareUrl,
+  ticketFacebookQuote,
   buildTicketShareUrl,
   buildWhatsAppShareUrl,
   buildXShareUrl,
@@ -40,13 +41,24 @@ export function TicketDetailSharePanel({ post, tr }: { post: TicketWallPost; tr:
     }
   };
 
-  const openExternal = (channel: 'whatsapp' | 'facebook' | 'x', href: string) => {
+  const openExternal = async (
+    channel: 'whatsapp' | 'facebook' | 'x',
+    href: string,
+    copyText?: string,
+  ) => {
     track(AnalyticsEvent.TicketDetailShareClick, {
       post_id: post.id,
       kind: post.kind,
       action: 'external',
       channel,
     });
+    if (copyText) {
+      try {
+        await navigator.clipboard.writeText(copyText);
+      } catch {
+        /* ignore clipboard failure */
+      }
+    }
     window.open(href, '_blank', 'noopener,noreferrer');
   };
 
@@ -112,7 +124,13 @@ export function TicketDetailSharePanel({ post, tr }: { post: TicketWallPost; tr:
             </button>
             <button
               type="button"
-              onClick={() => openExternal('facebook', buildFacebookShareUrl(post, tr))}
+              onClick={() =>
+                void openExternal(
+                  'facebook',
+                  buildFacebookShareUrl(post, tr),
+                  `${ticketFacebookQuote(post, tr)}\n\n${shareUrl}`,
+                )
+              }
               className="rounded-lg border border-gray-700 px-2.5 py-1.5 text-[11px] font-semibold text-gray-300 hover:border-blue-500/50"
             >
               FB
