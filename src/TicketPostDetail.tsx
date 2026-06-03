@@ -458,19 +458,6 @@ export function TicketPostDetailPage({
             <div className="space-y-5 px-5 py-5 sm:px-6">
               {verified ? <PlatformGuaranteeBanner tr={tr} /> : null}
               {isSell ? <SellDetailBody post={post} tr={tr} lang={lang} /> : <BuyDetailBody post={post} tr={tr} />}
-              {waHref ? (
-                <a
-                  href={waHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={onWhatsappClick}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.99]"
-                  style={{ backgroundColor: '#25D366' }}
-                >
-                  <MessageCircle className="h-5 w-5 shrink-0" />
-                  {tr.ticketDetailWhatsappCta}
-                </a>
-              ) : null}
 
               <div className="flex flex-col gap-2.5">
                 {!verified ? (
