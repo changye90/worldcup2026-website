@@ -43,6 +43,7 @@ import {
 } from './sellPostResolve';
 import { parseTicketPostIdFromPath } from './ticketRouting';
 import { filterVisibleBuyPosts, filterVisibleTicketWallPosts } from './ticketWallFilters';
+import { sortTicketWallPosts } from './ticketWallSort';
 import { postHasPlatformGuarantee } from './platformGuarantee';
 import { VerifiedSellerBadge } from './VerifiedSellerBadge';
 import { getTicketIdFromUrl, shareTicketPost, ticketPostElementId } from './ticketShare';
@@ -671,7 +672,7 @@ export function useTicketWall(
     for (const p of seedTicketWallPosts) {
       if (p.kind === 'sell') byId.set(p.id, p);
     }
-    const list = filterVisibleTicketWallPosts(sortTicketPostsNewestFirst(Array.from(byId.values())));
+    const list = filterVisibleTicketWallPosts(sortTicketWallPosts(Array.from(byId.values())));
     const pinId = highlightPostId ?? pendingShareId;
     if (!pinId) return list;
     const pinned = list.find(p => p.id === pinId);
@@ -687,7 +688,7 @@ export function useTicketWall(
     for (const p of seedTicketWallPosts) {
       if (p.kind === 'buy') byId.set(p.id, p);
     }
-    const list = filterVisibleBuyPosts(sortTicketPostsNewestFirst(Array.from(byId.values())));
+    const list = filterVisibleBuyPosts(sortTicketWallPosts(Array.from(byId.values())));
     const pinId = highlightPostId ?? pendingShareId;
     if (!pinId) return list;
     const pinned = list.find(p => p.id === pinId);
